@@ -1423,22 +1423,30 @@
   <div id="modalRoot"></div>
 </div>
 
-<script src="seed-data.js"></script>
 <script>
 /* ---------- Data Model & LocalStorage Repository ---------- */
-const DB_KEY = 'jigeumini_db_v10';
+const DB_KEY = 'jigeumini_db_v9';
 
 function loadDB() {
   const raw = localStorage.getItem(DB_KEY);
-  const seedVersion = (window.SEED_DATA && window.SEED_DATA.version) || null;
   if (raw) {
     try {
       const parsed = JSON.parse(raw);
-      // seed-data.js의 version이 로컬 저장본과 같으면 그대로 사용,
-      // 다르면(=더미 데이터가 갱신됨) 자동으로 새 시드 데이터로 다시 시작합니다.
-      if (parsed && parsed.seedVersion && parsed.seedVersion === seedVersion) {
-        if (!parsed.comments) parsed.comments = (window.SEED_DATA && window.SEED_DATA.comments) || [];
-        if (!parsed.users) parsed.users = (window.SEED_DATA && window.SEED_DATA.users) || [];
+      if (parsed && parsed.contents && parsed.contents.some(c => c.id === 'c_almond')) {
+        const demo = seedDemo();
+        // 출판사 정보 누락 보완
+        parsed.contents.forEach(c => {
+          const dm = demo.contents.find(d => d.id === c.id || (d.title && c.title && d.title === c.title));
+          if (dm && dm.publisher && (!c.publisher || c.publisher === '출판사 미상')) {
+            c.publisher = dm.publisher;
+          }
+        });
+        const demoCommPosts = demo.posts.filter(p => !p.mine);
+        demoCommPosts.forEach(cp => {
+          if (!parsed.posts.some(p => p.id === cp.id)) {
+            parsed.posts.push(cp);
+          }
+        });
         return parsed;
       }
     } catch (e) {}
@@ -1524,31 +1532,104 @@ function uid(prefix) {
 }
 
 function seedDemo() {
-  // 더미 데이터는 이 파일이 아니라 외부 파일 seed-data.js (window.SEED_DATA)에서 불러옵니다.
-  // disign.html과 seed-data.js를 같은 폴더에 두고 열어야 정상적으로 데이터가 채워집니다.
-  const ext = (typeof window !== 'undefined' && window.SEED_DATA) ? window.SEED_DATA : null;
+  const contents = [
+    { id: 'c0', type: 'BOOK', title: '어린 왕자', creator: '앙투안 드 생텍쥐페리', publisher: '열린책들', cover: null, coverBg: 'rgb(74, 111, 165)', genre: '문학', totalPoint: 152, rating: 4.0, readerCount: 13 },
+    { id: 'c_almond', type: 'BOOK', title: '아몬드', creator: '손원평', publisher: '창비', cover: null, coverBg: 'rgb(90, 143, 123)', genre: '소설', totalPoint: 244, rating: 4.9, readerCount: 38 },
+    { id: 'c_yeok', type: 'BOOK', title: '역행자', creator: '자청', publisher: '웅진지식하우스', cover: null, coverBg: 'rgb(196, 164, 74)', genre: '자기계발', totalPoint: 360, rating: 4.8, readerCount: 25 },
+    { id: 'c_deadpoet', type: 'BOOK', title: '죽은 시인의 사회', creator: 'N.H. 클라인바움', publisher: '서교출판사', cover: null, coverBg: 'rgb(181, 101, 118)', genre: '소설', totalPoint: 256, rating: 4.9, readerCount: 18 },
+    { id: 'c1', type: 'BOOK', title: '달까지 가자', creator: '장류진', publisher: '창비', cover: 'https://contents.kyobobook.co.kr/skyblu/wise/pbk/pub/9788936438418.jpg', coverBg: 'rgb(180, 83, 9)', genre: '소설', totalPoint: 280, rating: 4.8, readerCount: 45 },
+    { id: 'c2', type: 'BOOK', title: '채식주의자', creator: '한강', publisher: '창비', cover: 'https://contents.kyobobook.co.kr/skyblu/wise/pbk/pub/9788936434595.jpg', coverBg: 'rgb(71, 85, 105)', genre: '소설', totalPoint: 240, rating: 4.9, readerCount: 38 },
+    { id: 'c3', type: 'BOOK', title: '모순', creator: '양귀자', publisher: '쓰다', cover: 'https://contents.kyobobook.co.kr/skyblu/wise/pbk/pub/9788970637402.jpg', coverBg: 'rgb(146, 64, 14)', genre: '소설', totalPoint: 310, rating: 4.7, readerCount: 29 },
+    { id: 'c4', type: 'BOOK', title: '불편한 편의점', creator: '김호연', publisher: '나무옆의자', cover: 'https://contents.kyobobook.co.kr/skyblu/wise/pbk/pub/9791161571188.jpg', coverBg: 'rgb(13, 148, 136)', genre: '소설', totalPoint: 268, rating: 4.8, readerCount: 52 },
+    { id: 'c5', type: 'BOOK', title: '세이노의 가르침', creator: '세이노', publisher: '데이원', cover: null, coverBg: 'rgb(124, 45, 18)', genre: '자기계발', totalPoint: 736, rating: 4.6, readerCount: 60 },
+    { id: 'c6', type: 'BOOK', title: '물고기는 존재하지 않는다', creator: '룰루 밀러', publisher: '곰출판', cover: null, coverBg: 'rgb(30, 58, 138)', genre: '인문', totalPoint: 272, rating: 4.7, readerCount: 31 }
+  ];
+  const myContent = [
+    { contentId: 'c0', status: 'DONE', currentPoint: 152, startDate: '2026.06.14', finishDate: '2026.07.19' },
+    { contentId: 'c_almond', status: 'WANT', currentPoint: 0 },
+    { contentId: 'c_yeok', status: 'WANT', currentPoint: 0 },
+    { contentId: 'c_deadpoet', status: 'WANT', currentPoint: 0 },
+    { contentId: 'c1', status: 'WANT', currentPoint: 0 },
+    { contentId: 'c2', status: 'ACTIVE', currentPoint: 186, startDate: '2026.07.05' },
+    { contentId: 'c3', status: 'DONE', currentPoint: 310, startDate: '2026.05.10', finishDate: '2026.06.01' },
+    { contentId: 'c4', status: 'DONE', currentPoint: 268, startDate: '2026.06.01', finishDate: '2026.06.20' },
+    { contentId: 'c5', status: 'DONE', currentPoint: 736, startDate: '2026.04.15', finishDate: '2026.05.30' },
+    { contentId: 'c6', status: 'DONE', currentPoint: 272, startDate: '2026.05.01', finishDate: '2026.05.25' }
+  ];
+  const posts = [
+    // --- 내 기록 (mine: true) ---
+    { id: 'p_le1', contentId: 'c0', point: 72, memoType: 'QUOTE', text: '"가장 중요한 것은 눈에 보이지 않아. 마음으로 보아야 잘 보인단다."', review: '', rating: 4, spoiler: false, nickname: '나', mine: true, likes: 8, comments: 6, createdAt: Date.now() - 1000*60*60*24*5 },
+    { id: 'p_le2', contentId: 'c0', point: null, memoType: 'THOUGHT', text: '어른이 될수록 보이는 것만 믿게 되는 것 같다. 이 구절을 읽으며 순수함을 잃지 말아야겠다고 다짐했다.', review: '', rating: 4, spoiler: false, nickname: '나', mine: true, likes: 0, comments: 0, createdAt: Date.now() - 1000*60*60*24*4 },
+    { id: 'p_le3', contentId: 'c0', point: 68, memoType: 'QUESTION', text: '여우가 말한 "길들인다는 것"의 의미는 현대 관계에서도 통할까?', review: '', rating: 4, spoiler: false, nickname: '나', mine: true, likes: 0, comments: 0, createdAt: Date.now() - 1000*60*60*24*3 },
+    { id: 'p_le4', contentId: 'c0', point: null, memoType: 'SUMMARY', text: '어른이 되어도 순수한 시선을 유지하는 것의 중요성. 관계와 책임에 대한 통찰.', review: '', rating: 4, spoiler: false, nickname: '나', mine: true, likes: 0, comments: 0, createdAt: Date.now() - 1000*60*60*24*2 },
+    { id: 'p_le5', contentId: 'c0', point: 45, memoType: 'QUOTE', text: '"진정한 여행은 새로운 풍경을 보는 것이 아니라, 새로운 눈을 가지는 것이다."', review: '', rating: 4, spoiler: false, nickname: '나', mine: true, likes: 2, comments: 3, createdAt: Date.now() - 1000*60*60*24*1 },
+    { id: 'p1', contentId: 'c1', point: 42, memoType: 'QUOTE', text: '돈은 없지만 마음은 부자다, 라는 말은 결국 통장을 보면 사라진다.', review: '초반 분위기가 경쾌해서 술술 읽힌다.', rating: 4, spoiler: false, nickname: '나', mine: true, likes: 3, createdAt: Date.now() - 1000*60*60*5 },
+    { id: 'p2', contentId: 'c2', point: 186, memoType: 'QUOTE', text: '식물이 되고 싶다는 말이 이렇게 무거울 줄은 몰랐다. 한강의 문장은 조용하지만 깊이 박힌다.', review: '올해 읽은 독서 중 가장 인상적.', rating: 5, spoiler: false, nickname: '나', mine: true, likes: 12, createdAt: Date.now() - 1000*60*30 },
 
-  if (!ext) {
-    console.warn('[지금이니] seed-data.js를 찾지 못해 빈 데이터로 시작합니다. disign.html과 같은 폴더에 seed-data.js가 있는지 확인해주세요.');
-    return { contents: [], myContent: [], posts: [], activeBookId: null, collections: [], comments: [], users: [], seedVersion: null };
-  }
+    // --- 커뮤니티 타 유저 기록 (mine: false) ---
+    { id: 'p_comm_c0_1', contentId: 'c0', point: 34, memoType: 'QUOTE', text: '"너의 장미꽃이 그토록 소중한 것은 네가 그것을 위해 들인 시간 때문이야."', review: '', rating: 5, spoiler: false, nickname: '이현아', mine: false, likes: 15, comments: 4, createdAt: Date.now() - 1000*60*60*48 },
+    { id: 'p_comm_c0_2', contentId: 'c0', point: 92, memoType: 'THOUGHT', text: '길들여진다는 것은 눈물을 흘릴 일이 생길 수도 있다는 것. 관계의 깊이에 대해 다정한 경고를 해주는 문장.', review: '', rating: 5, spoiler: false, nickname: '박민우', mine: false, likes: 9, comments: 2, createdAt: Date.now() - 1000*60*60*20 },
+    { id: 'p_comm_c0_3', contentId: 'c0', point: 140, memoType: 'REVIEW', text: '어릴 때 읽었을 때는 그저 동화였는데, 30대가 되어 다시 읽으니 눈시울이 붉어집니다.', review: '인생 최고의 책 중 하나입니다.', rating: 5, spoiler: false, nickname: '김서연', mine: false, likes: 21, comments: 5, createdAt: Date.now() - 1000*60*60*5 },
+    
+    { id: 'p_comm_c2_1', contentId: 'c2', point: 88, memoType: 'QUOTE', text: '"내가 믿는 건 내 가슴뿐이야. 난 내 젖가슴이 좋아. 아무것도 죽일 수 없는 젖가슴이니까."', review: '', rating: 5, spoiler: false, nickname: '정우진', mine: false, likes: 18, comments: 3, createdAt: Date.now() - 1000*60*60*36 },
+    { id: 'p_comm_c2_2', contentId: 'c2', point: 150, memoType: 'THOUGHT', text: '인간의 폭력성과 그로부터 벗어나려는 한 인간의 절규가 너무나 강렬하다.', review: '문장이 서늘하면서도 아름답다.', rating: 5, spoiler: false, nickname: '한소희', mine: false, likes: 14, comments: 1, createdAt: Date.now() - 1000*60*60*12 },
 
-  return {
-    contents: ext.contents || [],
-    myContent: ext.myContent || [],
-    posts: ext.posts || [],
-    activeBookId: ext.activeBookId || (ext.contents && ext.contents[0] && ext.contents[0].id) || null,
-    collections: ext.collections || [],
-    comments: ext.comments || [],
-    users: ext.users || [],
-    seedVersion: ext.version || null
-  };
+    { id: 'p_comm_alm_1', contentId: 'c_almond', point: 55, memoType: 'QUOTE', text: '"구할 수 없는 인간이란 없다. 구하려는 노력을 그만두는 인간이 있을 뿐이다."', review: '', rating: 5, spoiler: false, nickname: '강하늘', mine: false, likes: 27, comments: 8, createdAt: Date.now() - 1000*60*60*72 },
+    { id: 'p_comm_alm_2', contentId: 'c_almond', point: 180, memoType: 'THOUGHT', text: '감정을 느끼지 못하는 윤재의 시선을 따라가며, 오히려 감정을 지닌 우리가 얼마나 타인에게 무감각했는지 반성하게 됨.', review: '단숨에 읽어 내려간 명작.', rating: 5, spoiler: false, nickname: '최유진', mine: false, likes: 19, comments: 2, createdAt: Date.now() - 1000*60*60*15 },
+
+    { id: 'p_comm_c4_1', contentId: 'c4', point: 120, memoType: 'QUOTE', text: '"결국 삶은 관계였고 관계는 소통이었다. 소통은 따뜻한 관심에서 출발하는 법이었다."', review: '', rating: 5, spoiler: false, nickname: '윤지훈', mine: false, likes: 32, comments: 7, createdAt: Date.now() - 1000*60*60*40 },
+    { id: 'p_comm_c4_2', contentId: 'c4', point: 210, memoType: 'REVIEW', text: '퇴근길 지하철에서 읽으며 마음에 온기가 차오르는 것을 느꼈습니다. 독서의 즐거움을 되찾아준 고마운 책!', review: '따뜻하고 인간미 넘치는 소설.', rating: 5, spoiler: false, nickname: '임수진', mine: false, likes: 25, comments: 3, createdAt: Date.now() - 1000*60*60*8 },
+
+    { id: 'p_comm_c1_1', contentId: 'c1', point: 115, memoType: 'THOUGHT', text: '하이퍼 리얼리즘 직장인들의 현실과 코인 열풍 이야기를 이렇게 유쾌하면서도 서글프게 담아내다니.', review: '', rating: 4, spoiler: false, nickname: '송태섭', mine: false, likes: 11, comments: 2, createdAt: Date.now() - 1000*60*60*18 },
+
+    { id: 'p_comm_yeok_1', contentId: 'c_yeok', point: 95, memoType: 'SUMMARY', text: '자신의 무의식을 균열시키고 정체성을 재설정하는 22전략(하루 2시간 읽고 쓰기)이 핵심.', review: '', rating: 4, spoiler: false, nickname: '오세훈', mine: false, likes: 22, comments: 4, createdAt: Date.now() - 1000*60*60*50 }
+  ];
+  const activeBookId = 'c0';
+  const collections = [
+    {
+      id: 'col_1',
+      title: '✨ 마음을 보듬어주는 힐링 문장집',
+      desc: '위로가 필요할 때 펼쳐보는 마법 같은 책 속 한 구절 모음',
+      author: '나',
+      mine: true,
+      isShared: true,
+      postIds: ['p_le1', 'p_le5', 'p1'],
+      createdAt: Date.now() - 1000 * 60 * 60 * 24 * 3
+    },
+    {
+      id: 'col_2',
+      title: '💡 깊은 통찰과 질문을 던지는 문장들',
+      desc: '삶과 관계의 본질을 묵직하게 뒤흔드는 인문 명구절',
+      author: '나',
+      mine: true,
+      isShared: true,
+      postIds: ['p_le3', 'p2'],
+      createdAt: Date.now() - 1000 * 60 * 60 * 24 * 1
+    },
+    {
+      id: 'col_3',
+      title: '🔥 독자 커뮤니티 베스트 문장 선집',
+      desc: '이번 달 가장 많은 공감과 하트를 받은 명문장 컬렉션',
+      author: '이현아',
+      mine: false,
+      isShared: true,
+      postIds: ['p1', 'p2'],
+      createdAt: Date.now() - 1000 * 60 * 60 * 24 * 5
+    }
+  ];
+  return { contents, myContent, posts, activeBookId, collections };
 }
 
 let db = loadDB();
 
-if (!db.comments) db.comments = (window.SEED_DATA && window.SEED_DATA.comments) || [];
-if (!db.users) db.users = (window.SEED_DATA && window.SEED_DATA.users) || [];
+  if (!db.comments) {
+    db.comments = [
+      { id: 'cm1', postId: 'p_le1', nickname: '이현아', text: '언제 읽어도 울림을 주는 명문장이네요 😭', createdAt: Date.now() - 1000*60*60*5, parentId: null },
+      { id: 'cm1_1', postId: 'p_le1', nickname: '나', text: '맞아요, 어른이 되어 다시 읽으니 더 크게 와닿네요!', createdAt: Date.now() - 1000*60*60*3, parentId: 'cm1' },
+      { id: 'cm2', postId: 'p_le1', nickname: '박민우', text: '마음으로 보아야 잘 보인다는 말이 책의 핵심 같습니다.', createdAt: Date.now() - 1000*60*60*2, parentId: null },
+      { id: 'cm3', postId: 'p2', nickname: '김서연', text: '한강 작가님 특유의 조용하지만 강렬한 문체가 너무 좋았어요.', createdAt: Date.now() - 1000*60*20, parentId: null }
+    ];
+  }
 
 
 let state = {
@@ -3153,6 +3234,51 @@ function extractPageCount(b) {
 
 const GOOGLE_BOOKS_API_KEY = 'AIzaSyCgW1mJzTjmA6n1MY-3fQMAjuYEHAG4ZDY';
 const KAKAO_API_KEY = '9e4f47a5976e926dfc5f669a730c86d3';
+const ALADIN_TTB_KEY = 'ttbtamet1421006';
+
+function fetchAladinPageCount(isbn) {
+  return new Promise((resolve) => {
+    if (!isbn) return resolve(null);
+    let cleanedIsbn = (isbn || '').split(' ').pop().replace(/[^0-9X]/gi, '');
+    if (!cleanedIsbn || (cleanedIsbn.length !== 10 && cleanedIsbn.length !== 13)) {
+      return resolve(null);
+    }
+
+    const cbName = 'aladin_cb_' + Date.now() + '_' + Math.floor(Math.random() * 100000);
+    const script = document.createElement('script');
+    
+    const cleanup = () => {
+      delete window[cbName];
+      if (script && script.parentNode) {
+        script.parentNode.removeChild(script);
+      }
+    };
+
+    window[cbName] = function(data) {
+      cleanup();
+      try {
+        if (data && !data.errorCode && data.item && data.item.length > 0) {
+          const itemPage = data.item[0].subInfo?.itemPage;
+          if (itemPage && !isNaN(itemPage) && parseInt(itemPage, 10) > 0) {
+            return resolve(parseInt(itemPage, 10));
+          }
+        }
+      } catch(e) {
+        console.warn('알라딘 API 페이지 파싱 오류:', e);
+      }
+      resolve(null);
+    };
+
+    script.onerror = () => {
+      cleanup();
+      resolve(null);
+    };
+
+    const itemIdType = cleanedIsbn.length === 13 ? 'ISBN13' : 'ISBN';
+    script.src = `https://www.aladin.co.kr/ttb/api/ItemLookUp.aspx?ttbkey=${ALADIN_TTB_KEY}&itemIdType=${itemIdType}&ItemId=${cleanedIsbn}&output=js&Version=20131101&callback=${cbName}`;
+    document.body.appendChild(script);
+  });
+}
 
 async function fetchMultiSourceBooks(query, target = 'title') {
   let kakaoTarget = target;
@@ -3409,7 +3535,7 @@ async function searchKakaoBooks() {
           tempRegisterSourceProvider = kb.source || '추가 입력';
           tempRegisterIsbn = kb.isbn || '';
 
-          const pages = extractPageCount(kb);
+          let pages = extractPageCount(kb);
           if (pages && totalInput) totalInput.value = pages;
 
           const previewEl = document.getElementById('rg-cover-preview');
@@ -3419,10 +3545,24 @@ async function searchKakaoBooks() {
                 <img src="${kb.thumbnail}" style="width:42px; height:58px; object-fit:contain; border-radius:4px; box-shadow:0 2px 6px rgba(0,0,0,0.12);">
                 <div style="font-size:12px; color:var(--ink-main); line-height:1.4;">
                   <div style="font-weight:800;">🖼️ 표지 이미지 선택됨 (${esc(kb.source || '외부 API')})</div>
-                  <div style="font-size:11px; color:var(--ink-muted); margin-top:2px;">${pages ? `📄 자동 감지된 페이지 수: ${pages}쪽` : '페이지 수 직접 확인 및 수정 가능'}</div>
+                  <div style="font-size:11px; color:var(--ink-muted); margin-top:2px;" id="rg-cover-preview-info">${pages ? `📄 자동 감지된 페이지 수: ${pages}쪽` : (kb.isbn ? '📄 알라딘 API에서 페이지 수 조회 중...' : '페이지 수 직접 확인 및 수정 가능')}</div>
                 </div>
               </div>
             `;
+          }
+
+          if (!pages && kb.isbn) {
+            fetchAladinPageCount(kb.isbn).then(aladinPages => {
+              if (aladinPages) {
+                kb.page_count = aladinPages;
+                if (totalInput) totalInput.value = aladinPages;
+                const infoTextEl = document.getElementById('rg-cover-preview-info');
+                if (infoTextEl) {
+                  infoTextEl.textContent = `📄 알라딘 API 감지: ${aladinPages}쪽`;
+                }
+                toast(`'${kb.title}' 알라딘 API에서 페이지 수(${aladinPages}쪽)를 가져왔습니다!`);
+              }
+            });
           }
 
           toast(`'${kb.title}'` + (pages ? ` (${pages}쪽)` : '') + ' 정보를 가져왔어요! 확인 후 등록하세요.');
