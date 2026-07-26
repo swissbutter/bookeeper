@@ -9,7 +9,8 @@
 <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Noto+Serif+KR:wght@400;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+<!-- Supabase JS Client v2 -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
   :root {
@@ -1424,6 +1425,202 @@
 </div>
 
 <script>
+/* ---------- Supabase Database Connection & Configuration ---------- */
+const SUPABASE_URL = 'https://eypvienfpglkdhzxmtet.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_r77QHYdEBQ_G6g5m67EPaQ_RIeCFwxO';
+let supabaseClient = null;
+
+if (window.supabase && SUPABASE_URL.startsWith('https://')) {
+  try {
+    supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    console.log('⚡ Supabase Client Initialized!');
+  } catch (e) {
+    console.warn('Supabase initialization error:', e);
+  }
+}
+
+async function syncToSupabase() {
+  if (!supabaseClient || !db) return;
+  try {
+    if (db.contents && db.contents.length > 0) {
+      const bookRows = db.contents.map(c => ({
+        id: String(c.id),
+        type: c.type || 'BOOK',
+        title: c.title || '',
+        creator: c.creator || c.authors || '',
+        publisher: c.publisher || '',
+        isbn: c.isbn || '',
+        cover: c.cover || c.thumbnail || null,
+        genre: c.genre || '소설',
+        total_page: c.totalPoint || c.page_count || null,
+        rating: c.rating || 0,
+        source_provider: c.sourceProvider || c.source || 'KAKAO'
+      }));
+      await supabaseClient.from('books').upsert(bookRows, { onConflict: 'id' });
+    }
+
+    if (db.myContent && db.myContent.length > 0) {
+      const myRows = db.myContent.map(m => ({
+        book_id: String(m.contentId),
+        status: m.status || 'WANT',
+        current_point: m.currentPoint || 0,
+        start_date: m.startDate || null,
+        finish_date: m.finishDate || null
+      }));
+      await supabaseClient.from('my_contents').upsert(myRows, { onConflict: 'book_id' });
+    }
+
+    if (db.posts && db.posts.length > 0) {
+      const postRows = db.posts.map(p => ({
+        id: String(p.id),
+        book_id: String(p.contentId),
+        point: p.point || null,
+        memo_type: p.memoType || 'QUOTE',
+        text: p.text || '',
+        review: p.review || '',
+        rating: p.rating || 0,
+        spoiler: !!p.spoiler,
+        likes: p.likes || 0
+      }));
+      await supabaseClient.from('posts').upsert(postRows, { onConflict: 'id' });
+    }
+  } catch (e) {
+    console.warn('Supabase sync warning:', e);
+  }
+}
+
+async function syncFromSupabase() {
+  if (!supabaseClient || !db) return;
+  try {
+    const { data: booksData } = await supabaseClient.from('books').select('*');
+    if (booksData && booksData.length > 0) {
+      booksData.forEach(b => {
+        if (!db.contents.some(c => String(c.id) === String(b.id))) {
+          db.contents.push({
+            id: b.id,
+            type: b.type,
+            title: b.title,
+            creator: b.creator,
+            publisher: b.publisher,
+            isbn: b.isbn,
+            cover: b.cover,
+            genre: b.genre,
+            totalPoint: b.total_page,
+            rating: b.rating,
+            sourceProvider: b.source_provider
+          });
+        }
+      });
+    }
+
+    const { data: postsData } = await supabaseClient.from('posts').select('*');
+    if (postsData && postsData.length > 0) {
+      postsData.forEach(p => {
+        if (!db.posts.some(existing => String(existing.id) === String(p.id))) {
+          db.posts.push({
+            id: p.id,
+            contentId: p.book_id,
+            point: p.point,
+            memoType: p.memo_type,
+            text: p.text,
+            review: p.review,
+            rating: p.rating,
+            spoiler: p.spoiler,
+            nickname: '익명 수집가',
+            mine: false,
+            likes: p.likes || 0,
+            comments: 0,
+            createdAt: new Date(p.created_at || Date.now()).getTime()
+          });
+        }
+      });
+    }
+    localStorage.setItem(DB_KEY, JSON.stringify(db));
+    if (typeof render === 'function') render();
+  } catch(e) {
+    console.warn('Supabase fetch error:', e);
+  }
+}
+
+/* ---------- Supabase OAuth Authentication Handlers ---------- */
+let currentUser = null;
+
+try {
+  const savedUser = localStorage.getItem('jigeumini_auth_user');
+  if (savedUser) currentUser = JSON.parse(savedUser);
+} catch (e) {}
+
+async function loginWithOAuth(provider) {
+  if (!supabaseClient) {
+    toast('Supabase가 설정되지 않았습니다.');
+    return;
+  }
+  try {
+    toast(`${provider === 'kakao' ? '카카오' : '구글'} 로그인으로 이동합니다...`);
+    const { data, error } = await supabaseClient.auth.signInWithOAuth({
+      provider: provider,
+      options: {
+        redirectTo: window.location.href.split('#')[0].split('?')[0]
+      }
+    });
+    if (error) {
+      toast('로그인 실패: ' + error.message);
+    }
+  } catch (e) {
+    console.error('OAuth Login Error:', e);
+    toast('로그인 중 오류가 발생했습니다.');
+  }
+}
+
+async function logoutUser() {
+  if (supabaseClient) {
+    await supabaseClient.auth.signOut();
+  }
+  currentUser = null;
+  localStorage.removeItem('jigeumini_auth_user');
+  toast('로그아웃 되었습니다.');
+  if (typeof render === 'function') render();
+}
+
+function initAuthObserver() {
+  if (!supabaseClient) return;
+
+  supabaseClient.auth.getSession().then(({ data: { session } }) => {
+    if (session && session.user) {
+      handleAuthUser(session.user);
+    }
+  });
+
+  supabaseClient.auth.onAuthStateChange((event, session) => {
+    if (session && session.user) {
+      handleAuthUser(session.user);
+    } else if (event === 'SIGNED_OUT') {
+      currentUser = null;
+      localStorage.removeItem('jigeumini_auth_user');
+      if (typeof render === 'function') render();
+    }
+  });
+}
+
+const ADMIN_EMAILS = ['mutuldu@gmail.com'];
+
+function handleAuthUser(user) {
+  const meta = user.user_metadata || {};
+  const email = (user.email || '').toLowerCase().trim();
+  const isAdmin = ADMIN_EMAILS.includes(email);
+
+  currentUser = {
+    id: user.id,
+    email: user.email || '',
+    name: meta.full_name || meta.name || meta.nickname || user.email?.split('@')[0] || '독서가',
+    avatar: meta.avatar_url || meta.picture || null,
+    provider: user.app_metadata?.provider || 'oauth',
+    isAdmin: isAdmin
+  };
+  localStorage.setItem('jigeumini_auth_user', JSON.stringify(currentUser));
+  if (typeof render === 'function') render();
+}
+
 /* ---------- Data Model & LocalStorage Repository ---------- */
 const DB_KEY = 'jigeumini_db_v9';
 
@@ -1456,6 +1653,9 @@ function loadDB() {
 
 function saveDB() {
   localStorage.setItem(DB_KEY, JSON.stringify(db));
+  if (supabaseClient) {
+    syncToSupabase();
+  }
 }
 
 function cleanupUnusedBook(contentId) {
@@ -2492,31 +2692,61 @@ function renderMyPage() {
       <!-- Twitter Style Profile Header & Avatar Row -->
       <div style="padding:0 16px 16px; position:relative;">
         <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-top:-38px; margin-bottom:12px;">
-          <div class="tw-avatar" style="width:76px; height:76px; border-radius:50%; border:4px solid var(--card-bg); background:var(--accent); color:#FFF; font-size:30px; font-weight:800; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 12px rgba(0,0,0,0.15);">
-            나
+          <div class="tw-avatar" style="width:76px; height:76px; border-radius:50%; border:4px solid var(--card-bg); background:var(--accent); color:#FFF; font-size:30px; font-weight:800; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 12px rgba(0,0,0,0.15); overflow:hidden;">
+            ${currentUser && currentUser.avatar ? `<img src="${currentUser.avatar}" style="width:100%; height:100%; object-fit:cover;">` : (currentUser ? currentUser.name.slice(0, 1) : '나')}
           </div>
-          <button class="btn btn-ghost" style="padding:6px 14px; font-size:12.5px; font-weight:700; border:1px solid var(--line-strong); border-radius:3px; background:var(--card-bg);" onclick="toast('프로필 편집 기능 준비 중입니다.')">
-            프로필 편집
-          </button>
+          ${currentUser ? `
+            <button class="btn btn-ghost" style="padding:6px 14px; font-size:12.5px; font-weight:700; border:1px solid var(--line-strong); border-radius:3px; background:var(--card-bg); color:#DC2626;" onclick="logoutUser()">
+              🚪 로그아웃
+            </button>
+          ` : `
+            <button class="btn btn-primary" style="padding:6px 14px; font-size:12.5px; font-weight:700; border-radius:3px;" onclick="document.getElementById('auth-modal')?.scrollIntoView({behavior:'smooth'})">
+              🔑 로그인 / 가입
+            </button>
+          `}
         </div>
 
-        <!-- User Bio Info (내 소개 & 클릭 가능한 등급 마크) -->
+        <!-- User Bio Info -->
         <div style="margin-bottom:14px;">
           <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
-            <span style="font-size:18px; font-weight:800; color:var(--ink-main);">나의 독서 일지</span>
+            <span style="font-size:18px; font-weight:800; color:var(--ink-main);">${currentUser ? esc(currentUser.name) : '나의 독서 일지'}</span>
             <span style="color:var(--accent); font-size:15px;" title="인증된 독서가">✓</span>
-            <button type="button" class="tier-badge-btn" onclick="openTierTableModal()" title="클릭하여 전체 독서 등급표 보기" style="background:${userTier.bg}; color:${userTier.color}; border:1.5px solid ${userTier.color}; padding:3px 10px; border-radius:12px; font-size:11.5px; font-weight:800; cursor:pointer; display:inline-flex; align-items:center; gap:4px; margin-left:4px; box-shadow:0 2px 6px rgba(0,0,0,0.06); transition:transform 0.15s ease;">
-              <span>${userTier.badge}</span>
-              <span>${userTier.name}</span>
-            </button>
+            ${currentUser && currentUser.isAdmin ? `
+              <span style="background:linear-gradient(135deg, #B45309 0%, #D97A43 100%); color:#FFFFFF; border:none; padding:3px 10px; border-radius:12px; font-size:11.5px; font-weight:800; display:inline-flex; align-items:center; gap:4px; box-shadow:0 2px 6px rgba(180,83,9,0.25);">
+                👑 총괄 관리자
+              </span>
+            ` : `
+              <button type="button" class="tier-badge-btn" onclick="openTierTableModal()" title="클릭하여 전체 독서 등급표 보기" style="background:${userTier.bg}; color:${userTier.color}; border:1.5px solid ${userTier.color}; padding:3px 10px; border-radius:12px; font-size:11.5px; font-weight:800; cursor:pointer; display:inline-flex; align-items:center; gap:4px; margin-left:4px; box-shadow:0 2px 6px rgba(0,0,0,0.06);">
+                <span>${userTier.badge}</span>
+                <span>${userTier.name}</span>
+              </button>
+            `}
           </div>
-          <div style="font-size:13px; color:var(--ink-muted); font-weight:500; margin-top:2px;">@bookmate_me</div>
+          <div style="font-size:13px; color:var(--ink-muted); font-weight:500; margin-top:2px;">${currentUser ? esc(currentUser.email) : '@bookmate_me'}</div>
+          
+          ${!currentUser ? `
+            <!-- 소셜 로그인 카드 (로그인 상태가 아닐 때 표시) -->
+            <div id="auth-modal" style="background:var(--paper-bg); border:1px solid var(--line-strong); border-radius:8px; padding:16px; margin:14px 0 10px; text-align:center;">
+              <div style="font-size:14px; font-weight:800; color:var(--ink-main); margin-bottom:4px;">✨ 소셜 계정으로 1초 만에 시작하기</div>
+              <div style="font-size:12px; color:var(--ink-sub); margin-bottom:14px;">Supabase 인증으로 읽은 책과 문장을 안전하게 동기화하세요.</div>
+              <div style="display:flex; flex-direction:column; gap:8px;">
+                <button type="button" onclick="loginWithOAuth('kakao')" style="width:100%; padding:11px; border:none; border-radius:6px; background:#FEE500; color:#000000; font-size:13.5px; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; box-shadow:0 2px 6px rgba(0,0,0,0.06);">
+                  <span>💬</span> <span>카카오로 계속하기</span>
+                </button>
+                <button type="button" onclick="loginWithOAuth('google')" style="width:100%; padding:11px; border:1px solid var(--line-strong); border-radius:6px; background:#FFFFFF; color:#374151; font-size:13.5px; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; box-shadow:0 2px 6px rgba(0,0,0,0.04);">
+                  <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/></svg>
+                  <span>Google로 계속하기</span>
+                </button>
+              </div>
+            </div>
+          ` : ''}
+
           <div style="font-size:13.5px; color:var(--ink-main); margin-top:8px; line-height:1.45; font-weight:500;">
             서두르지 않고 조용하게 마음에 남는 문장을 수집합니다. 📖✨
           </div>
           <div style="display:flex; flex-wrap:wrap; gap:12px; font-size:12px; color:var(--ink-muted); margin-top:10px; font-weight:600;">
             <span>📍 서울, 대한민국</span>
-            <span>📅 2026년 3월 가입</span>
+            <span>📅 ${currentUser ? 'Supabase 연동 중' : '2026년 3월 가입'}</span>
             <span>🔗 <a href="#" onclick="return false;" style="color:var(--accent); text-decoration:none;">bookmate.me/@me</a></span>
           </div>
         </div>
@@ -2527,7 +2757,7 @@ function renderMyPage() {
           <div><strong style="color:var(--ink-main); font-weight:800;">156</strong> <span style="color:var(--ink-muted); font-size:12px;">팔로워</span></div>
         </div>
 
-        <!-- Pinned Card: Currently Reading Book Info (공통 렌더러 함수 사용) -->
+        <!-- Pinned Card: Currently Reading Book Info -->
         ${renderActiveReadingBanner()}
 
       </div>
@@ -6152,6 +6382,12 @@ document.addEventListener('click', (e) => {
 
 // Initial Render
 render();
+if (typeof initAuthObserver === 'function') {
+  initAuthObserver();
+}
+if (typeof syncFromSupabase === 'function') {
+  syncFromSupabase();
+}
 </script>
 </body>
 </html>
