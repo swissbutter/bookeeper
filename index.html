@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>지금이니 — 지금 내가 있는 곳까지만</title>
+<title>문장수집가 — 책 속의 빛나는 문장을 수집하다</title>
 
 <!-- Fonts: Pretendard & Noto Serif KR & Plus Jakarta Sans -->
 <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
@@ -944,7 +944,7 @@
   /* Minimal Center Floating Action Button for New Record */
   .floating-record-btn {
     position: fixed;
-    bottom: 96px;
+    bottom: 85px;
     left: 50%;
     transform: translateX(-50%);
     z-index: 1000;
@@ -1053,7 +1053,7 @@
     width: 136px;
     height: 190px;
     margin: 0 auto 16px;
-    border-radius:3px;
+    border-radius:6px;
     box-shadow: 0 10px 25px rgba(28, 25, 23, 0.2);
     display: flex;
     align-items: center;
@@ -1062,16 +1062,21 @@
     font-weight: 800;
     font-size: 20px;
     text-align: center;
-    padding: 16px;
+    padding: 0 !important;
     background: #4A6FA5;
     position: relative;
     overflow: hidden;
   }
   .book-cover.detail img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
     border-radius: inherit;
+    margin: 0 !important;
+    padding: 0 !important;
   }
   .detail-title {
     font-size: 21px;
@@ -1233,15 +1238,20 @@
     font-weight: 800 !important;
     font-size: 20px !important;
     text-align: center !important;
-    padding: 16px !important;
+    padding: 0 !important;
     position: relative !important;
     overflow: hidden !important;
   }
   .book-cover.detail img {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
     width: 100% !important;
     height: 100% !important;
     object-fit: cover !important;
     border-radius: inherit !important;
+    margin: 0 !important;
+    padding: 0 !important;
   }
 
   .detail-title {
@@ -1413,24 +1423,22 @@
   <div id="modalRoot"></div>
 </div>
 
+<script src="seed-data.js"></script>
 <script>
 /* ---------- Data Model & LocalStorage Repository ---------- */
-const DB_KEY = 'jigeumini_db_v9';
+const DB_KEY = 'jigeumini_db_v10';
 
 function loadDB() {
   const raw = localStorage.getItem(DB_KEY);
+  const seedVersion = (window.SEED_DATA && window.SEED_DATA.version) || null;
   if (raw) {
     try {
       const parsed = JSON.parse(raw);
-      if (parsed && parsed.contents && parsed.contents.some(c => c.id === 'c_almond')) {
-        // Ensure community dummy posts are present even if loaded from existing localStorage
-        const demo = seedDemo();
-        const demoCommPosts = demo.posts.filter(p => !p.mine);
-        demoCommPosts.forEach(cp => {
-          if (!parsed.posts.some(p => p.id === cp.id)) {
-            parsed.posts.push(cp);
-          }
-        });
+      // seed-data.js의 version이 로컬 저장본과 같으면 그대로 사용,
+      // 다르면(=더미 데이터가 갱신됨) 자동으로 새 시드 데이터로 다시 시작합니다.
+      if (parsed && parsed.seedVersion && parsed.seedVersion === seedVersion) {
+        if (!parsed.comments) parsed.comments = (window.SEED_DATA && window.SEED_DATA.comments) || [];
+        if (!parsed.users) parsed.users = (window.SEED_DATA && window.SEED_DATA.users) || [];
         return parsed;
       }
     } catch (e) {}
@@ -1442,109 +1450,105 @@ function saveDB() {
   localStorage.setItem(DB_KEY, JSON.stringify(db));
 }
 
+function cleanupUnusedBook(contentId) {
+  if (!contentId || !db || !db.contents) return;
+  const isUsedInMyContent = db.myContent && db.myContent.some(m => m.contentId === contentId);
+  const isUsedInPosts = db.posts && db.posts.some(p => p.contentId === contentId);
+
+  // 아무 유저도 서재에 보관/독서 중이지 않고 남긴 포스트도 없으면 db.contents에서 자동 삭제
+  if (!isUsedInMyContent && !isUsedInPosts) {
+    db.contents = db.contents.filter(x => x.id !== contentId);
+    if (db.activeBookId === contentId) {
+      db.activeBookId = db.contents[0]?.id || null;
+    }
+  }
+}
+
+/* ---------- User Reading Tier System (9 Level Tiers) ---------- */
+function getUserTierInfo() {
+  const completedCount = (db.myContent || []).filter(m => m.status === 'COMPLETED').length;
+  const hasRegisteredBook = (db.myContent || []).length > 0 || !!(db.user && db.user.hasRegisteredFirstBook);
+  const frontierCount = (db.user && db.user.frontierCount) || 0;
+
+  let name = '등급 없음';
+  let badge = '🌱';
+  let color = '#9CA3AF';
+  let bg = 'rgba(156, 163, 175, 0.12)';
+  let nextRequirement = '책 등록 시 프론티어';
+  let progressPercent = 0;
+
+  if (completedCount >= 500) {
+    name = '챌린저'; badge = '🔥'; color = '#EF4444'; bg = 'rgba(239, 68, 68, 0.12)';
+    nextRequirement = '최고 등급 챌린저 달성!'; progressPercent = 100;
+  } else if (completedCount >= 300) {
+    name = '마스터'; badge = '👑'; color = '#8B5CF6'; bg = 'rgba(139, 92, 246, 0.12)';
+    nextRequirement = `${500 - completedCount}권 더 완독 시 챌린저`; progressPercent = Math.round(((completedCount - 300) / 200) * 100);
+  } else if (completedCount >= 200) {
+    name = '다이아몬드'; badge = '💎'; color = '#06B6D4'; bg = 'rgba(6, 182, 212, 0.12)';
+    nextRequirement = `${300 - completedCount}권 더 완독 시 마스터`; progressPercent = Math.round(((completedCount - 200) / 100) * 100);
+  } else if (completedCount >= 100) {
+    name = '에메랄드'; badge = '❇️'; color = '#10B981'; bg = 'rgba(16, 185, 129, 0.12)';
+    nextRequirement = `${200 - completedCount}권 더 완독 시 다이아몬드`; progressPercent = Math.round(((completedCount - 100) / 100) * 100);
+  } else if (completedCount >= 50) {
+    name = '플래티넘'; badge = '💎'; color = '#3B82F6'; bg = 'rgba(59, 130, 246, 0.12)';
+    nextRequirement = `${100 - completedCount}권 더 완독 시 에메랄드`; progressPercent = Math.round(((completedCount - 50) / 50) * 100);
+  } else if (completedCount >= 20) {
+    name = '골드'; badge = '🥇'; color = '#F59E0B'; bg = 'rgba(245, 158, 11, 0.12)';
+    nextRequirement = `${50 - completedCount}권 더 완독 시 플래티넘`; progressPercent = Math.round(((completedCount - 20) / 30) * 100);
+  } else if (completedCount >= 10) {
+    name = '실버'; badge = '🥈'; color = '#6B7280'; bg = 'rgba(107, 114, 128, 0.12)';
+    nextRequirement = `${20 - completedCount}권 더 완독 시 골드`; progressPercent = Math.round(((completedCount - 10) / 10) * 100);
+  } else if (completedCount >= 3) {
+    name = '브론즈'; badge = '🥉'; color = '#B45309'; bg = 'rgba(180, 83, 9, 0.12)';
+    nextRequirement = `${10 - completedCount}권 더 완독 시 실버`; progressPercent = Math.round(((completedCount - 3) / 7) * 100);
+  } else if (hasRegisteredBook) {
+    name = '프론티어'; badge = '🌱'; color = '#059669'; bg = 'rgba(5, 150, 105, 0.12)';
+    nextRequirement = `${3 - completedCount}권 완독 시 브론즈`; progressPercent = Math.round((completedCount / 3) * 100);
+  }
+
+  return {
+    name,
+    badge,
+    color,
+    bg,
+    completedCount,
+    hasRegisteredBook,
+    frontierCount,
+    nextRequirement,
+    progressPercent
+  };
+}
+
 function uid(prefix) {
   return prefix + '_' + Math.random().toString(36).slice(2, 9);
 }
 
 function seedDemo() {
-  const contents = [
-    { id: 'c0', type: 'BOOK', title: '어린 왕자', creator: '앙투안 드 생텍쥐페리', publisher: '열린책들', cover: null, coverBg: 'rgb(74, 111, 165)', genre: '문학', totalPoint: 152, rating: 4.0, readerCount: 13 },
-    { id: 'c_almond', type: 'BOOK', title: '아몬드', creator: '손원평', publisher: '창비', cover: null, coverBg: 'rgb(90, 143, 123)', genre: '소설', totalPoint: 244, rating: 4.9, readerCount: 38 },
-    { id: 'c_yeok', type: 'BOOK', title: '역행자', creator: '자청', publisher: '웅진지식하우스', cover: null, coverBg: 'rgb(196, 164, 74)', genre: '자기계발', totalPoint: 360, rating: 4.8, readerCount: 25 },
-    { id: 'c_deadpoet', type: 'BOOK', title: '죽은 시인의 사회', creator: 'N.H. 클라인바움', publisher: '서교출판사', cover: null, coverBg: 'rgb(181, 101, 118)', genre: '소설', totalPoint: 256, rating: 4.9, readerCount: 18 },
-    { id: 'c1', type: 'BOOK', title: '달까지 가자', creator: '장류진', publisher: '창비', cover: 'https://contents.kyobobook.co.kr/skyblu/wise/pbk/pub/9788936438418.jpg', coverBg: 'rgb(180, 83, 9)', genre: '소설', totalPoint: 280, rating: 4.8, readerCount: 45 },
-    { id: 'c2', type: 'BOOK', title: '채식주의자', creator: '한강', publisher: '창비', cover: 'https://contents.kyobobook.co.kr/skyblu/wise/pbk/pub/9788936434595.jpg', coverBg: 'rgb(71, 85, 105)', genre: '소설', totalPoint: 240, rating: 4.9, readerCount: 38 },
-    { id: 'c3', type: 'BOOK', title: '모순', creator: '양귀자', publisher: '쓰다', cover: 'https://contents.kyobobook.co.kr/skyblu/wise/pbk/pub/9788970637402.jpg', coverBg: 'rgb(146, 64, 14)', genre: '소설', totalPoint: 310, rating: 4.7, readerCount: 29 },
-    { id: 'c4', type: 'BOOK', title: '불편한 편의점', creator: '김호연', publisher: '나무옆의자', cover: 'https://contents.kyobobook.co.kr/skyblu/wise/pbk/pub/9791161571188.jpg', coverBg: 'rgb(13, 148, 136)', genre: '소설', totalPoint: 268, rating: 4.8, readerCount: 52 },
-    { id: 'c5', type: 'BOOK', title: '세이노의 가르침', creator: '세이노', publisher: '데이원', cover: null, coverBg: 'rgb(124, 45, 18)', genre: '자기계발', totalPoint: 736, rating: 4.6, readerCount: 60 },
-    { id: 'c6', type: 'BOOK', title: '물고기는 존재하지 않는다', creator: '룰루 밀러', publisher: '곰출판', cover: null, coverBg: 'rgb(30, 58, 138)', genre: '인문', totalPoint: 272, rating: 4.7, readerCount: 31 }
-  ];
-  const myContent = [
-    { contentId: 'c0', status: 'DONE', currentPoint: 152, startDate: '2026.06.14', finishDate: '2026.07.19' },
-    { contentId: 'c_almond', status: 'WANT', currentPoint: 0 },
-    { contentId: 'c_yeok', status: 'WANT', currentPoint: 0 },
-    { contentId: 'c_deadpoet', status: 'WANT', currentPoint: 0 },
-    { contentId: 'c1', status: 'WANT', currentPoint: 0 },
-    { contentId: 'c2', status: 'ACTIVE', currentPoint: 186, startDate: '2026.07.05' },
-    { contentId: 'c3', status: 'DONE', currentPoint: 310, startDate: '2026.05.10', finishDate: '2026.06.01' },
-    { contentId: 'c4', status: 'DONE', currentPoint: 268, startDate: '2026.06.01', finishDate: '2026.06.20' },
-    { contentId: 'c5', status: 'DONE', currentPoint: 736, startDate: '2026.04.15', finishDate: '2026.05.30' },
-    { contentId: 'c6', status: 'DONE', currentPoint: 272, startDate: '2026.05.01', finishDate: '2026.05.25' }
-  ];
-  const posts = [
-    // --- 내 기록 (mine: true) ---
-    { id: 'p_le1', contentId: 'c0', point: 72, memoType: 'QUOTE', text: '"가장 중요한 것은 눈에 보이지 않아. 마음으로 보아야 잘 보인단다."', review: '', rating: 4, spoiler: false, nickname: '나', mine: true, likes: 8, comments: 6, createdAt: Date.now() - 1000*60*60*24*5 },
-    { id: 'p_le2', contentId: 'c0', point: null, memoType: 'THOUGHT', text: '어른이 될수록 보이는 것만 믿게 되는 것 같다. 이 구절을 읽으며 순수함을 잃지 말아야겠다고 다짐했다.', review: '', rating: 4, spoiler: false, nickname: '나', mine: true, likes: 0, comments: 0, createdAt: Date.now() - 1000*60*60*24*4 },
-    { id: 'p_le3', contentId: 'c0', point: 68, memoType: 'QUESTION', text: '여우가 말한 "길들인다는 것"의 의미는 현대 관계에서도 통할까?', review: '', rating: 4, spoiler: false, nickname: '나', mine: true, likes: 0, comments: 0, createdAt: Date.now() - 1000*60*60*24*3 },
-    { id: 'p_le4', contentId: 'c0', point: null, memoType: 'SUMMARY', text: '어른이 되어도 순수한 시선을 유지하는 것의 중요성. 관계와 책임에 대한 통찰.', review: '', rating: 4, spoiler: false, nickname: '나', mine: true, likes: 0, comments: 0, createdAt: Date.now() - 1000*60*60*24*2 },
-    { id: 'p_le5', contentId: 'c0', point: 45, memoType: 'QUOTE', text: '"진정한 여행은 새로운 풍경을 보는 것이 아니라, 새로운 눈을 가지는 것이다."', review: '', rating: 4, spoiler: false, nickname: '나', mine: true, likes: 2, comments: 3, createdAt: Date.now() - 1000*60*60*24*1 },
-    { id: 'p1', contentId: 'c1', point: 42, memoType: 'QUOTE', text: '돈은 없지만 마음은 부자다, 라는 말은 결국 통장을 보면 사라진다.', review: '초반 분위기가 경쾌해서 술술 읽힌다.', rating: 4, spoiler: false, nickname: '나', mine: true, likes: 3, createdAt: Date.now() - 1000*60*60*5 },
-    { id: 'p2', contentId: 'c2', point: 186, memoType: 'QUOTE', text: '식물이 되고 싶다는 말이 이렇게 무거울 줄은 몰랐다. 한강의 문장은 조용하지만 깊이 박힌다.', review: '올해 읽은 독서 중 가장 인상적.', rating: 5, spoiler: false, nickname: '나', mine: true, likes: 12, createdAt: Date.now() - 1000*60*30 },
+  // 더미 데이터는 이 파일이 아니라 외부 파일 seed-data.js (window.SEED_DATA)에서 불러옵니다.
+  // disign.html과 seed-data.js를 같은 폴더에 두고 열어야 정상적으로 데이터가 채워집니다.
+  const ext = (typeof window !== 'undefined' && window.SEED_DATA) ? window.SEED_DATA : null;
 
-    // --- 커뮤니티 타 유저 기록 (mine: false) ---
-    { id: 'p_comm_c0_1', contentId: 'c0', point: 34, memoType: 'QUOTE', text: '"너의 장미꽃이 그토록 소중한 것은 네가 그것을 위해 들인 시간 때문이야."', review: '', rating: 5, spoiler: false, nickname: '이현아', mine: false, likes: 15, comments: 4, createdAt: Date.now() - 1000*60*60*48 },
-    { id: 'p_comm_c0_2', contentId: 'c0', point: 92, memoType: 'THOUGHT', text: '길들여진다는 것은 눈물을 흘릴 일이 생길 수도 있다는 것. 관계의 깊이에 대해 다정한 경고를 해주는 문장.', review: '', rating: 5, spoiler: false, nickname: '박민우', mine: false, likes: 9, comments: 2, createdAt: Date.now() - 1000*60*60*20 },
-    { id: 'p_comm_c0_3', contentId: 'c0', point: 140, memoType: 'REVIEW', text: '어릴 때 읽었을 때는 그저 동화였는데, 30대가 되어 다시 읽으니 눈시울이 붉어집니다.', review: '인생 최고의 책 중 하나입니다.', rating: 5, spoiler: false, nickname: '김서연', mine: false, likes: 21, comments: 5, createdAt: Date.now() - 1000*60*60*5 },
-    
-    { id: 'p_comm_c2_1', contentId: 'c2', point: 88, memoType: 'QUOTE', text: '"내가 믿는 건 내 가슴뿐이야. 난 내 젖가슴이 좋아. 아무것도 죽일 수 없는 젖가슴이니까."', review: '', rating: 5, spoiler: false, nickname: '정우진', mine: false, likes: 18, comments: 3, createdAt: Date.now() - 1000*60*60*36 },
-    { id: 'p_comm_c2_2', contentId: 'c2', point: 150, memoType: 'THOUGHT', text: '인간의 폭력성과 그로부터 벗어나려는 한 인간의 절규가 너무나 강렬하다.', review: '문장이 서늘하면서도 아름답다.', rating: 5, spoiler: false, nickname: '한소희', mine: false, likes: 14, comments: 1, createdAt: Date.now() - 1000*60*60*12 },
+  if (!ext) {
+    console.warn('[지금이니] seed-data.js를 찾지 못해 빈 데이터로 시작합니다. disign.html과 같은 폴더에 seed-data.js가 있는지 확인해주세요.');
+    return { contents: [], myContent: [], posts: [], activeBookId: null, collections: [], comments: [], users: [], seedVersion: null };
+  }
 
-    { id: 'p_comm_alm_1', contentId: 'c_almond', point: 55, memoType: 'QUOTE', text: '"구할 수 없는 인간이란 없다. 구하려는 노력을 그만두는 인간이 있을 뿐이다."', review: '', rating: 5, spoiler: false, nickname: '강하늘', mine: false, likes: 27, comments: 8, createdAt: Date.now() - 1000*60*60*72 },
-    { id: 'p_comm_alm_2', contentId: 'c_almond', point: 180, memoType: 'THOUGHT', text: '감정을 느끼지 못하는 윤재의 시선을 따라가며, 오히려 감정을 지닌 우리가 얼마나 타인에게 무감각했는지 반성하게 됨.', review: '단숨에 읽어 내려간 명작.', rating: 5, spoiler: false, nickname: '최유진', mine: false, likes: 19, comments: 2, createdAt: Date.now() - 1000*60*60*15 },
-
-    { id: 'p_comm_c4_1', contentId: 'c4', point: 120, memoType: 'QUOTE', text: '"결국 삶은 관계였고 관계는 소통이었다. 소통은 따뜻한 관심에서 출발하는 법이었다."', review: '', rating: 5, spoiler: false, nickname: '윤지훈', mine: false, likes: 32, comments: 7, createdAt: Date.now() - 1000*60*60*40 },
-    { id: 'p_comm_c4_2', contentId: 'c4', point: 210, memoType: 'REVIEW', text: '퇴근길 지하철에서 읽으며 마음에 온기가 차오르는 것을 느꼈습니다. 독서의 즐거움을 되찾아준 고마운 책!', review: '따뜻하고 인간미 넘치는 소설.', rating: 5, spoiler: false, nickname: '임수진', mine: false, likes: 25, comments: 3, createdAt: Date.now() - 1000*60*60*8 },
-
-    { id: 'p_comm_c1_1', contentId: 'c1', point: 115, memoType: 'THOUGHT', text: '하이퍼 리얼리즘 직장인들의 현실과 코인 열풍 이야기를 이렇게 유쾌하면서도 서글프게 담아내다니.', review: '', rating: 4, spoiler: false, nickname: '송태섭', mine: false, likes: 11, comments: 2, createdAt: Date.now() - 1000*60*60*18 },
-
-    { id: 'p_comm_yeok_1', contentId: 'c_yeok', point: 95, memoType: 'SUMMARY', text: '자신의 무의식을 균열시키고 정체성을 재설정하는 22전략(하루 2시간 읽고 쓰기)이 핵심.', review: '', rating: 4, spoiler: false, nickname: '오세훈', mine: false, likes: 22, comments: 4, createdAt: Date.now() - 1000*60*60*50 }
-  ];
-  const activeBookId = 'c0';
-  const collections = [
-    {
-      id: 'col_1',
-      title: '✨ 마음을 보듬어주는 힐링 문장집',
-      desc: '위로가 필요할 때 펼쳐보는 마법 같은 책 속 한 구절 모음',
-      author: '나',
-      mine: true,
-      isShared: true,
-      postIds: ['p_le1', 'p_le5', 'p1'],
-      createdAt: Date.now() - 1000 * 60 * 60 * 24 * 3
-    },
-    {
-      id: 'col_2',
-      title: '💡 깊은 통찰과 질문을 던지는 문장들',
-      desc: '삶과 관계의 본질을 묵직하게 뒤흔드는 인문 명구절',
-      author: '나',
-      mine: true,
-      isShared: true,
-      postIds: ['p_le3', 'p2'],
-      createdAt: Date.now() - 1000 * 60 * 60 * 24 * 1
-    },
-    {
-      id: 'col_3',
-      title: '🔥 독자 커뮤니티 베스트 문장 선집',
-      desc: '이번 달 가장 많은 공감과 하트를 받은 명문장 컬렉션',
-      author: '이현아',
-      mine: false,
-      isShared: true,
-      postIds: ['p1', 'p2'],
-      createdAt: Date.now() - 1000 * 60 * 60 * 24 * 5
-    }
-  ];
-  return { contents, myContent, posts, activeBookId, collections };
+  return {
+    contents: ext.contents || [],
+    myContent: ext.myContent || [],
+    posts: ext.posts || [],
+    activeBookId: ext.activeBookId || (ext.contents && ext.contents[0] && ext.contents[0].id) || null,
+    collections: ext.collections || [],
+    comments: ext.comments || [],
+    users: ext.users || [],
+    seedVersion: ext.version || null
+  };
 }
 
 let db = loadDB();
 
-  if (!db.comments) {
-    db.comments = [
-      { id: 'cm1', postId: 'p_le1', nickname: '이현아', text: '언제 읽어도 울림을 주는 명문장이네요 😭', createdAt: Date.now() - 1000*60*60*5, parentId: null },
-      { id: 'cm1_1', postId: 'p_le1', nickname: '나', text: '맞아요, 어른이 되어 다시 읽으니 더 크게 와닿네요!', createdAt: Date.now() - 1000*60*60*3, parentId: 'cm1' },
-      { id: 'cm2', postId: 'p_le1', nickname: '박민우', text: '마음으로 보아야 잘 보인다는 말이 책의 핵심 같습니다.', createdAt: Date.now() - 1000*60*60*2, parentId: null },
-      { id: 'cm3', postId: 'p2', nickname: '김서연', text: '한강 작가님 특유의 조용하지만 강렬한 문체가 너무 좋았어요.', createdAt: Date.now() - 1000*60*20, parentId: null }
-    ];
-  }
+if (!db.comments) db.comments = (window.SEED_DATA && window.SEED_DATA.comments) || [];
+if (!db.users) db.users = (window.SEED_DATA && window.SEED_DATA.users) || [];
 
 
 let state = {
@@ -1564,8 +1568,15 @@ let state = {
   myPostTypeFilter: 'ALL',
   commPostSort: 'LATEST',
   commPostTypeFilter: 'ALL',
-  myPostsShowAll: false
+  myPostsShowAll: false,
+  expandedDescs: {}
 };
+
+function toggleBookDesc(contentId) {
+  if (!state.expandedDescs) state.expandedDescs = {};
+  state.expandedDescs[contentId] = !state.expandedDescs[contentId];
+  render();
+}
 
 let postForm = { memoType: 'QUOTE', page: '', text: '', rating: 0, spoiler: false };
 let cardTemplate = 0;
@@ -1640,6 +1651,7 @@ function render() {
   if (currentOvType) {
     if (currentOvType === 'register') main.innerHTML = renderRegister();
     else if (currentOvType === 'detail') main.innerHTML = renderDetail(ov.contentId);
+    else if (currentOvType === 'editBook') main.innerHTML = renderEditBook(ov.contentId);
     else if (currentOvType === 'stats') main.innerHTML = renderStats();
   } else {
     if (state.tab === 'feed') main.innerHTML = renderFeed();
@@ -1669,7 +1681,9 @@ function renderActiveReadingBanner() {
 
   return `
     <div class="reading-banner" style="cursor:pointer; border-radius:8px;" data-opencontent="${activeContent.id}">
-      <div class="rb-cover" style="background:${activeContent.coverBg || 'var(--book)'}; border-radius:6px;">📖</div>
+      <div class="rb-cover" style="background:${activeContent.coverBg || 'var(--book)'}; border-radius:6px; overflow:hidden; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+        ${activeContent.cover ? `<img src="${activeContent.cover}" alt="표지" style="width:100%; height:100%; object-fit:cover;">` : '📖'}
+      </div>
       <div class="rb-info">
         <div style="font-size:11px; font-weight:700; color:var(--book); letter-spacing:0.3px;">지금 읽고 있는 책</div>
         <div class="rb-title" style="margin-top:2px;">${esc(activeContent.title)} <span style="font-weight:500; font-size:12px; color:var(--ink-muted);">(${esc(activeContent.creator || '')})</span></div>
@@ -1790,12 +1804,10 @@ function renderPostCard(p) {
           </div>
         </div>
 
-        <!-- Expanded Meta Box (Author & Publisher) -->
+        <!-- Expanded Meta Box (Author · Publisher · Genre) -->
         ${isMetaOpen ? `
-          <div style="font-size:11.5px; color:var(--ink-muted); margin-top:8px; padding:6px 10px; background:var(--paper-bg); border-radius:4px; border:1px solid var(--line-subtle); display:flex; gap:10px; align-items:center; animation:fadeIn 0.15s ease-out;">
-            <span><strong style="color:var(--ink-main);">${esc(c.creator || '미상')}</strong></span>
-            <span>·</span>
-            <span><strong style="color:var(--ink-main);">${esc(c.publisher || '미상')}</strong></span>
+          <div style="font-size:11.5px; color:var(--ink-muted); margin-top:8px; padding:6px 10px; background:var(--paper-bg); border-radius:4px; border:1px solid var(--line-subtle); animation:fadeIn 0.15s ease-out;">
+            ${esc(c.creator || '저자 미상')} · ${esc(c.publisher || '출판사 미상')} · ${esc(c.genre || '소설')}
           </div>
         ` : ''}
       </div>
@@ -2363,6 +2375,8 @@ function renderMyPage() {
     });
   }
 
+  const userTier = getUserTierInfo();
+
   return `
     <div class="screen-header">
       <div style="display:flex; align-items:center; gap:8px;">
@@ -2405,13 +2419,17 @@ function renderMyPage() {
           </button>
         </div>
 
-        <!-- User Bio Info (내 소개) -->
+        <!-- User Bio Info (내 소개 & 클릭 가능한 등급 마크) -->
         <div style="margin-bottom:14px;">
-          <div style="display:flex; align-items:center; gap:5px;">
+          <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
             <span style="font-size:18px; font-weight:800; color:var(--ink-main);">나의 독서 일지</span>
             <span style="color:var(--accent); font-size:15px;" title="인증된 독서가">✓</span>
+            <button type="button" class="tier-badge-btn" onclick="openTierTableModal()" title="클릭하여 전체 독서 등급표 보기" style="background:${userTier.bg}; color:${userTier.color}; border:1.5px solid ${userTier.color}; padding:3px 10px; border-radius:12px; font-size:11.5px; font-weight:800; cursor:pointer; display:inline-flex; align-items:center; gap:4px; margin-left:4px; box-shadow:0 2px 6px rgba(0,0,0,0.06); transition:transform 0.15s ease;">
+              <span>${userTier.badge}</span>
+              <span>${userTier.name}</span>
+            </button>
           </div>
-          <div style="font-size:13px; color:var(--ink-muted); font-weight:500;">@bookmate_me</div>
+          <div style="font-size:13px; color:var(--ink-muted); font-weight:500; margin-top:2px;">@bookmate_me</div>
           <div style="font-size:13.5px; color:var(--ink-main); margin-top:8px; line-height:1.45; font-weight:500;">
             서두르지 않고 조용하게 마음에 남는 문장을 수집합니다. 📖✨
           </div>
@@ -2616,9 +2634,9 @@ function renderMyPage() {
     ` : `
       <!-- 내 서재 상태 칩 필터 (status-chips 디자인 적용) -->
       <div class="status-chips" style="width:100%; box-sizing:border-box; margin-top:8px; margin-bottom:14px; display:flex; justify-content:center; align-items:center; gap:8px; text-align:center;">
-        <button class="badge ${activeMyLibFilter === 'WANT' ? '' : 'outline'}" data-mylibfilter="WANT" style="flex:1; text-align:center; padding:8px 10px; font-size:12.5px; font-weight:700;">📌 보관함 (${wantCount})</button>
-        <button class="badge ${activeMyLibFilter === 'ACTIVE' ? '' : 'outline'}" data-mylibfilter="ACTIVE" style="flex:1; text-align:center; padding:8px 10px; font-size:12.5px; font-weight:700;">📖 읽는 중 (${activeCount})</button>
-        <button class="badge ${activeMyLibFilter === 'DONE' ? '' : 'outline'}" data-mylibfilter="DONE" style="flex:1; text-align:center; padding:8px 10px; font-size:12.5px; font-weight:700;">🎉 완독 (${doneCount})</button>
+        <button class="badge ${activeMyLibFilter === 'WANT' ? '' : 'outline'}" data-mylibfilter="WANT" style="flex:1; text-align:center; padding:8px 10px; font-size:12.5px; font-weight:700;">보관함 (${wantCount})</button>
+        <button class="badge ${activeMyLibFilter === 'ACTIVE' ? '' : 'outline'}" data-mylibfilter="ACTIVE" style="flex:1; text-align:center; padding:8px 10px; font-size:12.5px; font-weight:700;">읽는 중 (${activeCount})</button>
+        <button class="badge ${activeMyLibFilter === 'DONE' ? '' : 'outline'}" data-mylibfilter="DONE" style="flex:1; text-align:center; padding:8px 10px; font-size:12.5px; font-weight:700;">완독 (${doneCount})</button>
       </div>
 
       
@@ -2716,9 +2734,9 @@ function renderLibrary() {
 
       <!-- 내 서재 상태 칩 필터 (status-chips 디자인 적용) -->
       <div class="status-chips" style="width:100%; box-sizing:border-box; margin-top:8px; margin-bottom:14px; display:flex; justify-content:center; align-items:center; gap:8px; text-align:center;">
-        <button class="badge ${activeTab === 'WANT' ? '' : 'outline'}" data-libfilter="WANT" style="flex:1; text-align:center; padding:8px 10px; font-size:12.5px; font-weight:700;">📌 보관함 (${wantCount})</button>
-        <button class="badge ${activeTab === 'ACTIVE' ? '' : 'outline'}" data-libfilter="ACTIVE" style="flex:1; text-align:center; padding:8px 10px; font-size:12.5px; font-weight:700;">📖 읽는 중 (${activeCount})</button>
-        <button class="badge ${activeTab === 'DONE' ? '' : 'outline'}" data-libfilter="DONE" style="flex:1; text-align:center; padding:8px 10px; font-size:12.5px; font-weight:700;">🎉 완독 (${doneCount})</button>
+        <button class="badge ${activeTab === 'WANT' ? '' : 'outline'}" data-libfilter="WANT" style="flex:1; text-align:center; padding:8px 10px; font-size:12.5px; font-weight:700;">보관함 (${wantCount})</button>
+        <button class="badge ${activeTab === 'ACTIVE' ? '' : 'outline'}" data-libfilter="ACTIVE" style="flex:1; text-align:center; padding:8px 10px; font-size:12.5px; font-weight:700;">읽는 중 (${activeCount})</button>
+        <button class="badge ${activeTab === 'DONE' ? '' : 'outline'}" data-libfilter="DONE" style="flex:1; text-align:center; padding:8px 10px; font-size:12.5px; font-weight:700;">완독 (${doneCount})</button>
       </div>
 
       <!-- Book Grid -->
@@ -2883,8 +2901,16 @@ function renderDetail(contentId) {
                 <circle cx="12" cy="19" r="1.5" fill="currentColor"></circle>
               </svg>
             </button>
-            <div class="more-dropdown" id="detailMoreDropdown" style="display: none;">
-              <button class="more-dropdown-item" id="deleteBookBtn">
+            <div class="more-dropdown" id="detailMoreDropdown" style="display: none; position:absolute; right:0; top:36px; background:var(--card-bg); border:1px solid var(--line-subtle); border-radius:8px; box-shadow:0 4px 16px rgba(0,0,0,0.12); z-index:100; min-width:130px; padding:4px 0;">
+              <button class="more-dropdown-item" id="editBookBtn" style="display:flex; align-items:center; gap:8px; width:100%; padding:10px 14px; border:none; background:none; font-size:13px; font-weight:700; color:var(--ink-main); cursor:pointer;">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                </svg>
+                책 수정
+              </button>
+              <div style="border-top:1px solid var(--line-subtle); margin:2px 0;"></div>
+              <button class="more-dropdown-item" id="deleteBookBtn" style="display:flex; align-items:center; gap:8px; width:100%; padding:10px 14px; border:none; background:none; font-size:13px; font-weight:700; color:var(--danger, #EF4444); cursor:pointer;">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <polyline points="3 6 5 6 21 6"></polyline>
                   <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
@@ -2899,8 +2925,8 @@ function renderDetail(contentId) {
         <div class="book-detail-info-card" style="display:flex; gap:20px; margin-bottom:0; padding:18px 20px 22px 20px; backdrop-filter:blur(10px); align-items:flex-start;">
           
           <!-- Left Side: Book Cover (책표지) -->
-          <div class="book-cover detail" style="width:105px; height:148px; background:${coverBg}; flex-shrink:0; border-radius:6px; box-shadow:0 8px 20px rgba(0,0,0,0.18), inset -2px 0 5px rgba(0,0,0,0.2); display:flex; align-items:center; justify-content:center; text-align:center; padding:6px; font-weight:800; font-size:13px; color:#FFF; margin-bottom:0;">
-            ${c.cover ? `<img src="${c.cover}" alt="${esc(c.title)} 표지" style="width:100%; height:100%; object-fit:cover; border-radius:4px;">` : esc(c.title)}
+          <div class="book-cover detail" style="width:105px; height:148px; background:${coverBg}; flex-shrink:0; border-radius:6px; box-shadow:0 8px 20px rgba(0,0,0,0.18); position:relative; overflow:hidden; padding:0 !important; margin:0;">
+            ${c.cover ? `<img src="${c.cover}" alt="${esc(c.title)} 표지" style="position:absolute; top:0; left:0; width:100%; height:100%; object-fit:cover; border-radius:6px; margin:0; padding:0;">` : esc(c.title)}
           </div>
 
           <!-- Right Side: Genre Badge + Title (Top) -> Author/Publisher -> Star Rating & Reader Pill (Side by Side) -> Brief Info -> Status Chips -->
@@ -2913,13 +2939,9 @@ function renderDetail(contentId) {
               </span>
             </div>
 
-            <!-- 2. Author & Publisher (저자 · 출판사) -->
-            <div style="font-size:12px; color:var(--ink-sub); font-weight:600; display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
-              <span style="color:var(--ink-main);">${esc(c.creator || '미상')}</span>
-              <span>·</span>
-              <span style="color:var(--ink-main);">${esc(c.publisher || '미상')}</span>
-              <span>·</span>
-              ${c.genre ? `<span style="font-size:11px; font-weight:800; background:rgba(180,83,9,0.12); color:var(--accent); padding:2px 8px; border-radius:4px;">${esc(c.genre)}</span>` : ''}
+            <!-- 2. Author · Publisher · Genre (일반 회색 텍스트, 중간점 구분) -->
+            <div style="font-size:12px; color:var(--ink-muted); font-weight:400; margin-top:2px; margin-bottom:4px; line-height:1.4;">
+              ${esc(c.creator || '저자 미상')} · ${esc(c.publisher || '출판사 미상')} · ${esc(c.genre || '소설')}
             </div>
             
             <!-- 4. Star Rating & Reader Count Pill (별점 옆에 노란 독자 수 배지 배치) -->
@@ -2931,16 +2953,33 @@ function renderDetail(contentId) {
               </div>
             </div>
 
-            <!-- 3. Brief Book Info (책 설명은 문장 좌측정렬) -->
-            <div style="font-size:12px; color:var(--ink-sub); line-height:1.55; text-align:left; background:rgba(255,255,255,0.7); backdrop-filter:blur(4px); padding:10px 12px; border-radius:6px; border:1px solid rgba(0,0,0,0.05); margin-top:2px;">
-              ${esc(c.description || (c.genre ? `『${c.title}』은(는) ${c.genre} 분야의 도서로, 파트너들과 함께 깊이 읽고 문장을 수집하기 좋은 명작입니다.` : '독서 파트너들과 함께 문장을 기록하고 생각을 공유하기 좋은 추천 도서입니다.'))}
-            </div>
+            <!-- 3. Brief Book Info (책 설명은 기본 120자 + 흑백 더보기/접기) -->
+            ${(() => {
+              const fullDesc = c.description || (c.genre ? `『${c.title}』은(는) ${c.genre} 분야의 도서로, 파트너들과 함께 깊이 읽고 문장을 수집하기 좋은 명작입니다.` : '독서 파트너들과 함께 문장을 기록하고 생각을 공유하기 좋은 추천 도서입니다.');
+              const isExpanded = !!(state.expandedDescs && state.expandedDescs[c.id]);
+              let displayDesc = esc(fullDesc);
+              let toggleBtn = '';
+              if (fullDesc.length > 120) {
+                if (isExpanded) {
+                  displayDesc = esc(fullDesc);
+                  toggleBtn = ` <button type="button" onclick="toggleBookDesc('${c.id}')" style="background:none; border:none; color:var(--ink-muted); font-size:11.5px; font-weight:700; cursor:pointer; padding:0 2px; text-decoration:underline;">접기 ▲</button>`;
+                } else {
+                  displayDesc = esc(fullDesc.substring(0, 120)) + '...';
+                  toggleBtn = ` <button type="button" onclick="toggleBookDesc('${c.id}')" style="background:none; border:none; color:var(--ink-muted); font-size:11.5px; font-weight:700; cursor:pointer; padding:0 2px; text-decoration:underline;">더보기 ▼</button>`;
+                }
+              }
+              return `
+                <div style="font-size:12px; color:var(--ink-sub); line-height:1.55; text-align:left; background:rgba(255,255,255,0.7); backdrop-filter:blur(4px); padding:10px 12px; border-radius:6px; border:1px solid rgba(0,0,0,0.05); margin-top:2px;">
+                  ${displayDesc}${toggleBtn}
+                </div>
+              `;
+            })()}
 
             <!-- 5. Status Chips (보관함/읽는중/완독 영역 안 중앙정렬) -->
             <div class="status-chips" style="margin-top:10px; margin-bottom:0; width:100%; display:flex; justify-content:center; align-items:center; gap:8px; text-align:center;">
-              <button class="badge ${status === 'WANT' ? '' : 'outline'}" data-setstatus="WANT" style="flex:1; text-align:center; padding:7px 10px;">📌 보관함</button>
-              <button class="badge ${status === 'ACTIVE' ? '' : 'outline'}" data-setstatus="ACTIVE" style="flex:1; text-align:center; padding:7px 10px;">📖 읽는 중</button>
-              <button class="badge ${status === 'DONE' ? '' : 'outline'}" data-setstatus="DONE" style="flex:1; text-align:center; padding:7px 10px;">🎉 완독</button>
+              <button class="badge ${status === 'WANT' ? '' : 'outline'}" data-setstatus="WANT" style="flex:1; text-align:center; padding:7px 10px;">보관함</button>
+              <button class="badge ${status === 'ACTIVE' ? '' : 'outline'}" data-setstatus="ACTIVE" style="flex:1; text-align:center; padding:7px 10px;">읽는 중</button>
+              <button class="badge ${status === 'DONE' ? '' : 'outline'}" data-setstatus="DONE" style="flex:1; text-align:center; padding:7px 10px;">완독</button>
             </div>
           </div>
         </div>
@@ -3005,86 +3044,616 @@ function renderDetail(contentId) {
 
 
 /* ---------- Register View (Purely Book Search & Entry) ---------- */
+let regTab = 'search'; // 'search' | 'manual'
+
 function renderRegister() {
   return `
-    <label class="form-label">책 검색 (카카오 책 검색 API)</label>
-    <div style="display:flex; gap:8px;">
-      <input type="text" id="kakao-query" placeholder="책 제목 또는 저자명 입력">
-      <button class="btn btn-primary" id="kakao-search-btn" style="flex-shrink:0; padding:10px 16px;">검색</button>
-    </div>
-    <div id="kakao-results" style="margin-top:10px;"></div>
-    
-    <div style="position:relative; text-align:center; margin:18px 0;">
-      <hr style="border:none; border-top:1px solid var(--line-subtle)">
-      <span style="position:absolute; top:-10px; left:50%; transform:translateX(-50%); background:var(--paper-app); padding:0 10px; font-size:11.5px; color:var(--ink-muted)">또는 수동 직접 입력</span>
+    <!-- 1. 책 검색 뷰 (초기 전면 표출) -->
+    <div id="reg-view-search" style="display:block;">
+      <div style="font-size:14px; font-weight:800; color:var(--ink-main); margin-bottom:12px; display:flex; align-items:center; gap:6px;">
+        🔍 책 검색으로 등록하기
+      </div>
+      <div class="flex gap-8 mb-12" style="display:flex; gap:8px; margin-bottom:12px;">
+        <select id="kakao-target-select" style="width: 78px; flex-shrink: 0; border: 1.5px solid var(--line-strong); border-radius: 8px; padding: 9px 4px; font-size: 12px; font-weight: 700; background: var(--paper-bg); color: var(--ink-main); outline: none; text-align: center;">
+          <option value="title">제목</option>
+          <option value="person">저자</option>
+          <option value="publisher">출판사</option>
+          <option value="isbn">ISBN</option>
+        </select>
+        <input type="text" id="kakao-query" placeholder="책 제목, 저자, 출판사, ISBN 검색" value="" style="flex: 1 1 0%; border: 1.5px solid var(--line-strong); border-radius: 10px; padding: 9px 12px; font-size: 13px; background: var(--paper-bg); color: var(--ink-main); outline: none;">
+        <button type="button" class="btn btn-sm btn-primary" id="kakao-search-btn" style="padding:0 16px; font-size:13px; font-weight:800; border-radius:8px; flex-shrink:0;">검색</button>
+      </div>
+
+      <!-- 초기 빈 상태 UI -->
+      <div id="kakao-empty-state" class="empty-state" style="padding: 36px 16px; text-align:center; color:var(--ink-muted); background:var(--card-bg); border-radius:10px; border:1px dashed var(--line-subtle); margin-bottom:12px;">
+        <div class="emoji" style="font-size:38px; margin-bottom:8px;">📚</div>
+        <div style="font-size:13px; font-weight:700; color:var(--ink-main);">책 제목, 저자, 출판사, ISBN으로 검색해보세요.</div>
+      </div>
+
+      <!-- 검색 결과 컨테이너 -->
+      <div id="kakao-results" style="max-height: 340px; overflow-y: auto; display:flex; flex-direction:column; gap:8px;"></div>
     </div>
 
-    <label class="form-label">책 제목</label>
-    <input type="text" id="rg-title" placeholder="예: 달까지 가자">
-    <label class="form-label">작가</label>
-    <input type="text" id="rg-creator" placeholder="예: 장류진">
-    <label class="form-label">장르 / 출판사</label>
-    <input type="text" id="rg-genre" placeholder="예: 소설">
-    <label class="form-label">총 페이지 수</label>
-    <input type="number" id="rg-total" placeholder="예: 280">
+    <!-- 2. 추가 입력 뷰 (검색 후 선택 시 전환) -->
+    <div id="reg-view-manual" style="display:none;">
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; padding-bottom:10px; border-bottom:1px solid var(--line-subtle);">
+        <div style="font-size:14px; font-weight:800; color:var(--ink-main);">✏️ 선택한 도서 정보 확인 및 추가 입력</div>
+        <button type="button" id="rg-back-to-search-btn" style="background:none; border:none; color:var(--accent); font-size:12.5px; font-weight:800; cursor:pointer;">← 다시 책 검색하기</button>
+      </div>
+      <!-- 썸네일 미리보기 컨테이너 -->
+      <div id="rg-cover-preview" style="margin-bottom:12px;"></div>
 
-    <button class="btn btn-primary full" id="rg-submit" style="margin-top:24px;">내 서재에 등록하기</button>
+      <div class="field-row" style="margin-bottom:12px;">
+        <label style="font-size:12.5px; font-weight:700; color:var(--ink-main); display:block; margin-bottom:4px;">제목 <span style="font-size:11px; font-weight:500; color:var(--ink-muted);">🔒 (수정 불가)</span></label>
+        <input type="text" id="rg-title" placeholder="책 제목" value="" readonly disabled style="width:100%; border: 1.5px solid var(--line-subtle); border-radius: 8px; padding: 9px 12px; font-size: 13px; background: #ffffff; color: var(--ink-muted); opacity: 0.8; cursor: not-allowed; box-sizing:border-box;">
+      </div>
+
+      <div class="field-row" style="margin-bottom:12px;">
+        <label style="font-size:12.5px; font-weight:700; color:var(--ink-main); display:block; margin-bottom:4px;">저자 <span style="font-size:11px; font-weight:500; color:var(--ink-muted);">🔒 (수정 불가)</span></label>
+        <input type="text" id="rg-creator" placeholder="저자" value="" readonly disabled style="width:100%; border: 1.5px solid var(--line-subtle); border-radius: 8px; padding: 9px 12px; font-size: 13px; background: #ffffff; color: var(--ink-muted); opacity: 0.8; cursor: not-allowed; box-sizing:border-box;">
+      </div>
+
+      <div class="field-row" style="margin-bottom:12px;">
+        <label style="font-size:12.5px; font-weight:700; color:var(--ink-main); display:block; margin-bottom:4px;">출판사 <span style="font-size:11px; font-weight:500; color:var(--ink-muted);">🔒 (수정 불가)</span></label>
+        <input type="text" id="rg-publisher" placeholder="출판사" value="" readonly disabled style="width:100%; border: 1.5px solid var(--line-subtle); border-radius: 8px; padding: 9px 12px; font-size: 13px; background: #ffffff; color: var(--ink-muted); opacity: 0.8; cursor: not-allowed; box-sizing:border-box;">
+      </div>
+
+      <div class="field-row" style="margin-bottom:12px;">
+        <label style="font-size:12.5px; font-weight:700; color:var(--ink-main); display:block; margin-bottom:4px;">ISBN 번호 <span style="font-size:11px; font-weight:500; color:var(--ink-muted);">🔒 (고정 메타 정보)</span></label>
+        <input type="text" id="rg-isbn" placeholder="ISBN 번호" value="" readonly disabled style="width:100%; border: 1.5px solid var(--line-subtle); border-radius: 8px; padding: 9px 12px; font-size: 13px; background: #ffffff; color: var(--ink-muted); opacity: 0.8; cursor: not-allowed; box-sizing:border-box;">
+      </div>
+
+      <div class="field-row" style="display:flex; align-items:center; gap:16px; margin-bottom:12px;">
+        <div>
+          <label style="font-size:12.5px; font-weight:700; color:var(--ink-main); display:block; margin-bottom:4px;">카테고리</label>
+          <select id="rg-category" style="width:140px; border: 1.5px solid var(--line-strong); border-radius: 8px; padding: 9px 10px; font-size: 12.5px; background: var(--paper-bg); color: var(--ink-main); outline: none; box-sizing:border-box;">
+            ${['소설', '시/에세이', '인문학', '철학/사상', '역사/세계사', '사회/정치/법', '경제/경영/재테크', '자기계발', '자연/과학/공학', 'IT/컴퓨터/AI', '예술/대중문화', '종교/영성', '건강/취미/여행', '청소년/아동', '만화/웹툰', '외국어/학습', '기타'].map(cat => `<option value="${cat}">${cat}</option>`).join('')}
+          </select>
+        </div>
+        <div>
+          <label style="font-size:12.5px; font-weight:700; color:var(--ink-main); display:block; margin-bottom:4px;">총 페이지 <span style="font-weight: 400; color: var(--ink-muted);">(선택)</span></label>
+          <input type="number" id="rg-total" placeholder="300" min="1" value="" style="width: 100px; border: 1.5px solid var(--line-strong); border-radius: 8px; padding: 9px 10px; font-size: 13px; background: var(--paper-bg); color: var(--ink-main); outline: none; box-sizing:border-box;">
+        </div>
+      </div>
+
+      <div class="field-row" style="margin-bottom:16px;">
+        <label style="font-size:12.5px; font-weight:700; color:var(--ink-main); display:block; margin-bottom:4px;">책 소개 (요약)</label>
+        <textarea id="rg-desc" placeholder="책의 줄거리나 요약 소개글" style="width:100%; height:64px; border: 1.5px solid var(--line-strong); border-radius: 8px; padding:9px 12px; font-size:13px; background:var(--paper-bg); color:var(--ink-main); resize:none; box-sizing:border-box; outline:none;"></textarea>
+      </div>
+
+      <!-- 하단 액션 버튼 그룹 -->
+      <div class="modal-actions" style="display:flex; gap:10px; margin-top:20px;">
+        <button type="button" class="btn-outline" id="rg-cancel-btn" style="flex:1; padding:11px 0; border:1px solid var(--line-strong); border-radius:8px; font-size:13.5px; font-weight:700; background:transparent; color:var(--ink-main); cursor:pointer;">취소</button>
+        <button type="button" class="btn btn-primary" id="rg-submit" style="flex:2; padding:11px 0; border-radius:8px; font-size:13.5px; font-weight:800; border:none; cursor:pointer;">등록하기</button>
+      </div>
+    </div>
   `;
 }
 
-async function searchKakaoBooks() {
-  const q = document.getElementById('kakao-query').value.trim();
-  if (!q) { toast('검색어를 입력하세요.'); return; }
-  const resBox = document.getElementById('kakao-results');
-  resBox.innerHTML = '<div class="form-hint">카카오 검색 중...</div>';
-  try {
-    const res = await fetch(`https://dapi.kakao.com/v3/search/book?query=${encodeURIComponent(q)}`, {
-      headers: { Authorization: 'KakaoAK REST_API_KEY_PRESET' }
+let tempRegisterCover = null;
+let tempRegisterSiteContentId = null;
+let tempRegisterSourceProvider = null;
+let tempRegisterIsbn = null;
+
+function extractPageCount(b) {
+  if (!b) return null;
+  if (b.page_count && !isNaN(b.page_count)) return parseInt(b.page_count, 10);
+  if (b.page && !isNaN(b.page)) return parseInt(b.page, 10);
+  if (b.item_page && !isNaN(b.item_page)) return parseInt(b.item_page, 10);
+  if (b.total_page && !isNaN(b.total_page)) return parseInt(b.total_page, 10);
+
+  const text = ((b.contents || '') + ' ' + (b.title || '')).replace(/,/g, '');
+  const match = text.match(/(\d{2,4})\s*(쪽|페이지|p\b)/i);
+  if (match && match[1]) {
+    const num = parseInt(match[1], 10);
+    if (num >= 20 && num <= 3000) return num;
+  }
+  return null;
+}
+
+const GOOGLE_BOOKS_API_KEY = 'AIzaSyCgW1mJzTjmA6n1MY-3fQMAjuYEHAG4ZDY';
+const KAKAO_API_KEY = '9e4f47a5976e926dfc5f669a730c86d3';
+
+async function fetchMultiSourceBooks(query, target = 'title') {
+  let kakaoTarget = target;
+  let gQuery = query;
+
+  if (target === 'title') gQuery = `intitle:${query}`;
+  else if (target === 'person') gQuery = `inauthor:${query}`;
+  else if (target === 'publisher') gQuery = `inpublisher:${query}`;
+  else if (target === 'isbn') gQuery = `isbn:${query}`;
+
+  // 0. 사이트 내부 DB (db.contents) 최우선 검색
+  const localQuery = (query || '').trim().toLowerCase();
+  const siteBooks = [];
+  if (localQuery && db.contents && Array.isArray(db.contents)) {
+    db.contents.forEach(c => {
+      let isMatch = false;
+      if (target === 'isbn' && c.isbn && c.isbn.toLowerCase().includes(localQuery)) isMatch = true;
+      else if (target === 'title' && c.title && c.title.toLowerCase().includes(localQuery)) isMatch = true;
+      else if (target === 'person' && c.creator && c.creator.toLowerCase().includes(localQuery)) isMatch = true;
+      else if (target === 'publisher' && c.publisher && c.publisher.toLowerCase().includes(localQuery)) isMatch = true;
+      else if (c.title && c.title.toLowerCase().includes(localQuery)) isMatch = true;
+
+      if (isMatch) {
+        siteBooks.push({
+          siteContentId: c.id,
+          title: c.title || '',
+          authors: c.creator || '',
+          publisher: c.publisher || '',
+          contents: c.description || '',
+          thumbnail: c.cover || null,
+          isbn: c.isbn || '',
+          page_count: c.totalPoint || null,
+          genre: c.genre || '소설',
+          source: '등록 도서'
+        });
+      }
     });
-    if (!res.ok) throw new Error();
-    const data = await res.json();
-    if (!data.documents || data.documents.length === 0) {
-      resBox.innerHTML = '<div class="form-hint">검색 결과가 없습니다. 수동으로 직접 입력해 주세요.</div>';
+  }
+
+  // 1. 카카오 API 동시 호출 Promise
+  const kakaoPromise = (async () => {
+    try {
+      const res = await fetch(`https://dapi.kakao.com/v3/search/book?query=${encodeURIComponent(query)}&target=${kakaoTarget}`, {
+        headers: { Authorization: `KakaoAK ${KAKAO_API_KEY}` }
+      });
+      if (!res.ok) return [];
+      const data = await res.json();
+      if (!data.documents) return [];
+      return data.documents.map(b => {
+        let cover = b.thumbnail || null;
+        if (cover && cover.includes('fname=')) {
+          try {
+            const urlObj = new URL(cover);
+            const fnameParam = urlObj.searchParams.get('fname');
+            if (fnameParam) cover = decodeURIComponent(fnameParam);
+          } catch(e) {
+            cover = cover.replace('R120x174', 'R500x0');
+          }
+        } else if (cover) {
+          cover = cover.replace('R120x174', 'R500x0');
+        }
+        let isbnVal = '';
+        if (b.isbn) {
+          const parts = b.isbn.split(' ');
+          isbnVal = parts[parts.length - 1] || b.isbn;
+        }
+        return {
+          title: b.title || '',
+          authors: Array.isArray(b.authors) ? b.authors.join(', ') : (b.authors || ''),
+          publisher: b.publisher || '',
+          contents: b.contents || '',
+          thumbnail: cover,
+          isbn: isbnVal,
+          page_count: b.page_count || b.page || null,
+          source: '카카오 책'
+        };
+      });
+    } catch(e) {
+      console.warn('카카오 책 검색 오류:', e);
+      return [];
+    }
+  })();
+
+  // 2. 구글 책 API 동시 호출 Promise
+  const googlePromise = (async () => {
+    try {
+      const gUrl = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(gQuery)}&key=${GOOGLE_BOOKS_API_KEY}&maxResults=10`;
+      const res = await fetch(gUrl);
+      if (!res.ok) return [];
+      const data = await res.json();
+      if (!data.items) return [];
+      return data.items.map(item => {
+        const v = item.volumeInfo || {};
+        const imgLinks = v.imageLinks || {};
+        let rawCover = imgLinks.extraLarge || imgLinks.large || imgLinks.medium || imgLinks.small || imgLinks.thumbnail || imgLinks.smallThumbnail || null;
+        
+        if (rawCover) {
+          rawCover = rawCover.replace('http://', 'https://').replace('&edge=curl', '');
+          // 구글의 대체 이미지 / img=0 / no_cover 검증
+          if (rawCover.includes('img=0') || rawCover.includes('no_cover') || rawCover.includes('nophoto') || rawCover.includes('placeholder')) {
+            rawCover = null;
+          }
+        }
+
+        let isbnVal = '';
+        if (v.industryIdentifiers) {
+          const isbnObj = v.industryIdentifiers.find(i => i.type === 'ISBN_13') || v.industryIdentifiers.find(i => i.type === 'ISBN_10');
+          if (isbnObj) isbnVal = isbnObj.identifier;
+        }
+
+        return {
+          title: v.title || '',
+          authors: Array.isArray(v.authors) ? v.authors.join(', ') : (v.authors || ''),
+          publisher: v.publisher || '',
+          contents: v.description || '',
+          thumbnail: rawCover,
+          isbn: isbnVal,
+          page_count: v.pageCount || null,
+          source: '구글 북스'
+        };
+      }).filter(b => b.thumbnail && b.thumbnail.trim().length > 15);
+    } catch(e) {
+      console.warn('구글 책 검색 오류:', e);
+      return [];
+    }
+  })();
+
+  // 카카오 & 구글 동시에 비동기 요청 처리 (Promise.allSettled)
+  const results = await Promise.allSettled([kakaoPromise, googlePromise]);
+  const kakaoBooks = results[0].status === 'fulfilled' ? results[0].value : [];
+  const googleBooks = results[1].status === 'fulfilled' ? results[1].value : [];
+
+  // 검색 결과 병합 및 스마트 중복 제거 (우리 사이트 DB -> 카카오 -> 구글 순서로 병합)
+  const merged = [];
+  const seenIsbns = new Set();
+  const seenTitles = new Set();
+
+  const addBook = (b) => {
+    const titleKey = (b.title || '').trim().toLowerCase();
+    const isbnKey = (b.isbn || '').trim();
+
+    // 이미 등록된 도서(siteBooks)이거나 이전 API에서 들어온 책(ISBN 또는 제목 일치)은 외부 검색 결과에서 완전 지움
+    if (isbnKey && seenIsbns.has(isbnKey)) return;
+    if (titleKey && seenTitles.has(titleKey)) return;
+
+    if (isbnKey) seenIsbns.add(isbnKey);
+    if (titleKey) seenTitles.add(titleKey);
+    merged.push(b);
+  };
+
+  siteBooks.forEach(addBook);
+  kakaoBooks.forEach(addBook);
+  googleBooks.forEach(addBook);
+
+  return merged;
+}
+
+async function searchKakaoBooks() {
+  const q = document.getElementById('kakao-query')?.value.trim();
+  if (!q) { toast('검색어를 입력하세요.'); return; }
+  const target = document.getElementById('kakao-target-select')?.value || 'title';
+  const resBox = document.getElementById('kakao-results');
+  const emptyState = document.getElementById('kakao-empty-state');
+  if (emptyState) emptyState.style.display = 'none';
+
+  if (resBox) resBox.innerHTML = '<div class="form-hint" style="text-align:center; padding:20px;">🔍 도서 멀티 검색 중...</div>';
+  try {
+    const books = await fetchMultiSourceBooks(q, target);
+    if (!books || books.length === 0) {
+      if (resBox) resBox.innerHTML = '<div class="form-hint" style="text-align:center; padding:20px;">검색 결과가 없습니다. \'추가 입력\' 탭에서 수동으로 입력해 주세요.</div>';
       return;
     }
-    resBox.innerHTML = data.documents.slice(0, 4).map(b => `
-      <div class="search-item" data-kbook='${JSON.stringify({ title: b.title, authors: b.authors.join(', '), thumbnail: b.thumbnail, publisher: b.publisher }).replace(/'/g, "&apos;")}'>
-        ${b.thumbnail ? `<img src="${b.thumbnail}">` : `<div style="width:44px;height:60px;background:#E7E5E4;"></div>`}
-        <div>
-          <div class="stitle">${esc(b.title)}</div>
-          <div class="smeta">${esc(b.authors.join(', '))} · ${esc(b.publisher)}</div>
+    if (resBox) {
+      resBox.innerHTML = books.slice(0, 8).map(b => `
+        <div class="search-item" data-kbook='${JSON.stringify({ siteContentId: b.siteContentId || null, title: b.title, authors: b.authors, thumbnail: b.thumbnail, publisher: b.publisher, contents: b.contents, isbn: b.isbn || '', page_count: b.page_count, source: b.source }).replace(/'/g, "&apos;")}' style="display:flex; gap:12px; align-items:center; padding:10px; background:var(--card-bg); border:1px solid var(--line-subtle); border-radius:8px; cursor:pointer;">
+          ${b.thumbnail ? `<img src="${b.thumbnail}" style="width:40px; height:56px; border-radius:4px; object-fit:contain; flex-shrink:0;">` : `<div style="width:40px; height:56px; border-radius:4px; background:var(--accent); display:flex; align-items:center; justify-content:center; color:#FFF; font-size:16px; flex-shrink:0;">📖</div>`}
+          <div style="flex:1; min-width:0;">
+            <div class="stitle" style="font-size:13.5px; font-weight:800; color:var(--ink-main); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${esc(b.title)}</div>
+            <div class="smeta" style="font-size:12px; color:var(--ink-muted); margin-top:3px;">${esc(b.authors || '저자 미상')} · ${esc(b.publisher || '출판사 미상')} ${b.source ? `<span style="font-size:10px; background:var(--paper-bg); padding:1px 4px; border-radius:3px; border:1px solid var(--line-subtle); margin-left:4px; color:var(--accent); font-weight:700;">${b.source}</span>` : ''}</div>
+          </div>
+          <button type="button" class="btn btn-sm btn-primary" style="padding:6px 12px; font-size:11.5px; font-weight:800; flex-shrink:0;">선택</button>
         </div>
-      </div>
-    `).join('');
+      `).join('');
+    }
 
     document.querySelectorAll('[data-kbook]').forEach(el => {
       el.onclick = () => {
         const kb = JSON.parse(el.dataset.kbook);
-        document.getElementById('rg-title').value = kb.title;
-        document.getElementById('rg-creator').value = kb.authors;
-        document.getElementById('rg-genre').value = kb.publisher;
-        toast('책 정보를 입력란에 채웠어요.');
+
+        // 이미 우리 사이트에 등록된 도서인지 확인 (ISBN 또는 siteContentId 또는 제목 기준)
+        const kbIsbn = (kb.isbn || '').trim();
+        const existingBook = (kb.siteContentId && db.contents.find(c => c.id === kb.siteContentId)) ||
+                             (kbIsbn && db.contents.find(c => c.isbn && c.isbn.trim() === kbIsbn)) ||
+                             db.contents.find(c => c.title && kb.title && c.title.trim().toLowerCase() === kb.title.trim().toLowerCase());
+
+        // 추가 입력 탭으로 뷰 전환
+        regTab = 'manual';
+        const searchView = document.getElementById('reg-view-search');
+        const manualView = document.getElementById('reg-view-manual');
+        const tabSearchBtn = document.getElementById('reg-tab-search');
+        const tabManualBtn = document.getElementById('reg-tab-manual');
+
+        if (searchView) searchView.style.display = 'none';
+        if (manualView) manualView.style.display = 'block';
+        if (tabSearchBtn) {
+          tabSearchBtn.classList.remove('active');
+          tabSearchBtn.style.background = 'transparent';
+          tabSearchBtn.style.boxShadow = 'none';
+        }
+        if (tabManualBtn) {
+          tabManualBtn.classList.add('active');
+          tabManualBtn.style.background = 'var(--paper-bg)';
+          tabManualBtn.style.boxShadow = '0 2px 6px rgba(0,0,0,0.08)';
+        }
+
+        const titleInput = document.getElementById('rg-title');
+        const creatorInput = document.getElementById('rg-creator');
+        const publisherInput = document.getElementById('rg-publisher');
+        const descInput = document.getElementById('rg-desc');
+        const categoryInput = document.getElementById('rg-category');
+        const totalInput = document.getElementById('rg-total');
+
+        if (existingBook) {
+          // 이미 누군가 등록해둔 등록 도서인 경우 -> 수정 폼 거치지 않고 즉시 내 서재('읽는 중')로 직행 담기!
+          const targetId = existingBook.id;
+          let myCont = db.myContent.find(m => m.contentId === targetId);
+          if (!myCont) {
+            db.myContent.push({
+              contentId: targetId,
+              status: 'ACTIVE',
+              currentPoint: 0,
+              startDate: new Date().toISOString().slice(0, 10).replace(/-/g, '.'),
+              finishDate: null,
+              lastActivePoint: 0
+            });
+          } else {
+            myCont.status = 'ACTIVE';
+          }
+          saveDB();
+          toast(`'${existingBook.title}' 기존 등록 도서를 내 서재('읽는 중')로 담았습니다!`);
+          state.overlayStack = [{ type: 'detail', contentId: targetId }];
+          render();
+          return;
+        } else {
+          // 신규 외부 API 데이터 채움
+          if (titleInput) titleInput.value = kb.title || '';
+          if (creatorInput) creatorInput.value = kb.authors || '저자 미상';
+          if (publisherInput) publisherInput.value = kb.publisher || '출판사 미상';
+          if (descInput) descInput.value = kb.contents || '';
+          const isbnInput = document.getElementById('rg-isbn');
+          if (isbnInput) isbnInput.value = kb.isbn || '';
+          tempRegisterCover = kb.thumbnail || null;
+          tempRegisterSiteContentId = null;
+          tempRegisterSourceProvider = kb.source || '추가 입력';
+          tempRegisterIsbn = kb.isbn || '';
+
+          const pages = extractPageCount(kb);
+          if (pages && totalInput) totalInput.value = pages;
+
+          const previewEl = document.getElementById('rg-cover-preview');
+          if (previewEl && kb.thumbnail) {
+            previewEl.innerHTML = `
+              <div style="display:flex; align-items:center; gap:12px; padding:10px; background:var(--paper-bg); border:1px solid var(--line-subtle); border-radius:6px; margin-bottom:12px;">
+                <img src="${kb.thumbnail}" style="width:42px; height:58px; object-fit:contain; border-radius:4px; box-shadow:0 2px 6px rgba(0,0,0,0.12);">
+                <div style="font-size:12px; color:var(--ink-main); line-height:1.4;">
+                  <div style="font-weight:800;">🖼️ 표지 이미지 선택됨 (${esc(kb.source || '외부 API')})</div>
+                  <div style="font-size:11px; color:var(--ink-muted); margin-top:2px;">${pages ? `📄 자동 감지된 페이지 수: ${pages}쪽` : '페이지 수 직접 확인 및 수정 가능'}</div>
+                </div>
+              </div>
+            `;
+          }
+
+          toast(`'${kb.title}'` + (pages ? ` (${pages}쪽)` : '') + ' 정보를 가져왔어요! 확인 후 등록하세요.');
+
+          // 검색 뷰 숨기고 추가 입력 뷰 표출
+          const searchView = document.getElementById('reg-view-search');
+          const manualView = document.getElementById('reg-view-manual');
+          if (searchView) searchView.style.display = 'none';
+          if (manualView) manualView.style.display = 'block';
+
+          const backBtn = document.getElementById('rg-back-to-search-btn');
+          if (backBtn) {
+            backBtn.onclick = () => {
+              if (searchView) searchView.style.display = 'block';
+              if (manualView) manualView.style.display = 'none';
+            };
+          }
+
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
       };
     });
   } catch (e) {
-    resBox.innerHTML = '<div class="form-hint">검색 API 연동 실패 (직접 입력해 주세요)</div>';
+    if (resBox) resBox.innerHTML = '<div class="form-hint" style="text-align:center; padding:20px;">검색 API 연동 실패 (잠시 후 다시 검색해 주세요)</div>';
   }
 }
 
 function submitRegister() {
   const title = document.getElementById('rg-title')?.value.trim();
   const creator = document.getElementById('rg-creator')?.value.trim();
-  const genre = document.getElementById('rg-genre')?.value.trim();
+  const publisher = document.getElementById('rg-publisher')?.value.trim();
+  const category = document.getElementById('rg-category')?.value || '소설';
   const totalVal = document.getElementById('rg-total')?.value;
+  const desc = document.getElementById('rg-desc')?.value.trim();
   const totalPoint = totalVal ? parseInt(totalVal, 10) : 300;
 
   if (!title) { toast('책 제목을 입력해 주세요.'); return; }
-  const id = uid('c');
-  db.contents.push({ id, type: 'BOOK', title, creator: creator || '', cover: null, genre: genre || '', totalPoint });
+
+  // 이미 우리 사이트 DB에 존재하는 도서인지 확인 후 기존 도서 재활용
+  let existingContent = db.contents.find(c =>
+    (tempRegisterSiteContentId && c.id === tempRegisterSiteContentId) ||
+    (tempRegisterIsbn && c.isbn && c.isbn.trim() === tempRegisterIsbn.trim()) ||
+    (c.title && title && c.title.trim().toLowerCase() === title.toLowerCase() && c.creator && creator && c.creator.trim().toLowerCase() === creator.toLowerCase()) ||
+    (c.title && title && c.title.trim().toLowerCase() === title.toLowerCase() && !creator)
+  );
+
+  const isNewSiteBook = !existingContent;
+  const id = existingContent ? existingContent.id : uid('c');
+  if (!existingContent) {
+    db.contents.push({ id, type: 'BOOK', title, creator: creator || '저자 미상', publisher: publisher || '출판사 미상', genre: category, isbn: tempRegisterIsbn || '', totalPoint, description: desc || '', cover: tempRegisterCover || null, sourceProvider: tempRegisterSourceProvider || '추가 입력' });
+    if (!db.user) db.user = {};
+    db.user.hasRegisteredFirstBook = true;
+    db.user.frontierCount = (db.user.frontierCount || 0) + 1;
+  } else {
+    if (publisher && publisher !== '출판사 미상') existingContent.publisher = publisher;
+    if (tempRegisterCover && !existingContent.cover) existingContent.cover = tempRegisterCover;
+    if (desc && (!existingContent.description || existingContent.description.length < desc.length)) existingContent.description = desc;
+    if (tempRegisterSourceProvider && !existingContent.sourceProvider) existingContent.sourceProvider = tempRegisterSourceProvider;
+    if (tempRegisterIsbn && !existingContent.isbn) existingContent.isbn = tempRegisterIsbn;
+  }
+  
+  // 내 서재 독서 상태 '읽는 중(ACTIVE)'으로 자동 등록
+  let myCont = db.myContent.find(m => m.contentId === id);
+  if (!myCont) {
+    db.myContent.push({
+      contentId: id,
+      status: 'ACTIVE',
+      currentPoint: 0,
+      startDate: new Date().toISOString().slice(0, 10).replace(/-/g, '.'),
+      finishDate: null,
+      lastActivePoint: 0
+    });
+  } else {
+    myCont.status = 'ACTIVE';
+  }
+
+  tempRegisterCover = null;
+  tempRegisterSiteContentId = null;
   saveDB();
-  toast('책을 새로 추가했어요! 독서 상태(보관함/읽는 중/완독)를 선택해 보세요.');
+
+  if (isNewSiteBook) {
+    toast(`🎉 우리 DB에 없는 책을 처음 등록하셨습니다! [🌱 프론티어] 등급을 달성하셨습니다!`);
+  } else {
+    toast(`'${title}'을(를) '읽는 중' 서재에 등록했습니다!`);
+  }
   state.overlayStack = [{ type: 'detail', contentId: id }];
   render();
+}
+
+/* ---------- Edit Book Overlay Screen ---------- */
+function renderEditBook(contentId) {
+  const c = getContent(contentId);
+  if (!c) return '<div style="padding:40px; text-align:center;">도서 정보를 찾을 수 없습니다.</div>';
+
+  const completedReadersCount = (db.myContent || []).filter(m => m.contentId === c.id && m.status === 'COMPLETED').length;
+  const isEditLocked = completedReadersCount >= 10;
+  const histories = (db.bookHistory || []).filter(h => h.contentId === c.id);
+
+  return `
+    <div class="edit-book-overlay-page" style="min-height:100vh; background:var(--paper-bg); padding-bottom:60px;">
+      <!-- Top Header -->
+      <div style="display:flex; align-items:center; gap:12px; padding:14px 20px; background:var(--card-bg); border-bottom:1px solid var(--line-subtle); position:sticky; top:0; z-index:100; box-shadow:0 2px 8px rgba(0,0,0,0.04);">
+        <button type="button" class="back-btn" onclick="popOverlay()" style="background:none; border:none; font-size:18px; color:var(--ink-main); cursor:pointer; padding:4px 8px; border-radius:4px; font-weight:800;" aria-label="뒤로가기">←</button>
+        <div style="font-size:16.5px; font-weight:800; color:var(--ink-main);">✏️ 책 정보 수정</div>
+      </div>
+
+      <!-- Main Body Container (No Card Box Wrapper) -->
+      <div style="max-width:560px; margin:0 auto; padding:24px 20px 40px;">
+        ${isEditLocked ? `
+          <div style="background:#FFFBEB; border:1.5px solid #FCD34D; border-radius:10px; padding:14px 16px; margin-bottom:20px; font-size:13px; color:#92400E; display:flex; align-items:center; gap:10px; box-shadow:0 2px 8px rgba(245,158,11,0.15);">
+            <span style="font-size:22px;">🔒</span>
+            <div style="line-height:1.45;">
+              <div style="font-weight:900; font-size:14px; color:#78350F;">완독자 10명 이상 도서 수정 제한 안내</div>
+              <div style="font-size:12.5px; margin-top:3px; opacity:0.95;">
+                이 책은 이미 <strong>${completedReadersCount}명의 독자가 완독</strong>한 검증 도서입니다. 정보의 안정성 보전을 위해 완독 독자 10명 이상 도서는 수정을 하실 수 없습니다.
+              </div>
+            </div>
+          </div>
+        ` : ''}
+        <div class="field-row" style="margin-bottom:16px;">
+          <label style="font-size:12.5px; font-weight:800; color:var(--ink-main); display:block; margin-bottom:6px;">제목 <span style="font-size:11px; font-weight:500; color:var(--ink-muted);">🔒 (수정 불가 고정 항목)</span></label>
+          <input type="text" id="edit-title" value="${esc(c.title || '')}" readonly disabled style="width:100%; border: 1.5px solid var(--line-subtle); border-radius: 8px; padding: 10px 12px; font-size: 13.5px; background: #ffffff; color: var(--ink-muted); opacity: 0.8; cursor: not-allowed; box-sizing:border-box;">
+        </div>
+
+        <div class="field-row" style="margin-bottom:16px;">
+          <label style="font-size:12.5px; font-weight:800; color:var(--ink-main); display:block; margin-bottom:6px;">저자 <span style="font-size:11px; font-weight:500; color:var(--ink-muted);">🔒 (수정 불가 고정 항목)</span></label>
+          <input type="text" id="edit-creator" value="${esc(c.creator || '')}" readonly disabled style="width:100%; border: 1.5px solid var(--line-subtle); border-radius: 8px; padding: 10px 12px; font-size: 13.5px; background: #ffffff; color: var(--ink-muted); opacity: 0.8; cursor: not-allowed; box-sizing:border-box;">
+        </div>
+
+        <div class="field-row" style="margin-bottom:16px;">
+          <label style="font-size:12.5px; font-weight:800; color:var(--ink-main); display:block; margin-bottom:6px;">출판사 <span style="font-size:11px; font-weight:500; color:var(--ink-muted);">🔒 (수정 불가 고정 항목)</span></label>
+          <input type="text" id="edit-publisher" value="${esc(c.publisher || '')}" readonly disabled style="width:100%; border: 1.5px solid var(--line-subtle); border-radius: 8px; padding: 10px 12px; font-size: 13.5px; background: #ffffff; color: var(--ink-muted); opacity: 0.8; cursor: not-allowed; box-sizing:border-box;">
+        </div>
+
+        <div class="field-row" style="margin-bottom:16px;">
+          <label style="font-size:12.5px; font-weight:800; color:var(--ink-main); display:block; margin-bottom:6px;">ISBN 번호 <span style="font-size:11px; font-weight:500; color:var(--ink-muted);">🔒 (고정 메타 정보)</span></label>
+          <input type="text" id="edit-isbn" value="${esc(c.isbn || '미기재')}" readonly disabled style="width:100%; border: 1.5px solid var(--line-subtle); border-radius: 8px; padding: 10px 12px; font-size: 13.5px; background: #ffffff; color: var(--ink-muted); opacity: 0.8; cursor: not-allowed; box-sizing:border-box;">
+        </div>
+
+        <div class="field-row" style="margin-bottom:18px;">
+          <label style="font-size:12.5px; font-weight:800; color:var(--ink-main); display:block; margin-bottom:8px;">표지 이미지 <span style="font-weight:400; color:var(--ink-muted);">(이미지 주소 URL)</span></label>
+          <div style="display:flex; gap:14px; align-items:center;">
+            <!-- 큼직한 섬네일 미리보기 (앞쪽 배치) -->
+            <div id="edit-cover-preview-box" style="width:76px; height:106px; border-radius:8px; background: #ffffff; border:1.5px solid var(--line-subtle); display:flex; align-items:center; justify-content:center; overflow:hidden; flex-shrink:0; box-shadow:0 4px 12px rgba(0,0,0,0.12);">
+              ${c.cover ? `<img src="${c.cover}" style="width:100%; height:100%; object-fit:cover;">` : '<span style="font-size:24px;">🖼️</span>'}
+            </div>
+            <!-- 표지 URL 입력 폼 (뒤쪽 배치) -->
+            <div style="flex:1;">
+              <input type="url" id="edit-cover" value="${esc(c.cover || '')}" ${isEditLocked ? 'readonly disabled' : ''} placeholder="https://example.com/cover.jpg 이미지 주소" style="width:100%; border: 1.5px solid var(--line-strong); border-radius: 8px; padding: 11px 12px; font-size: 13px; background: #ffffff; color: var(--ink-main); outline: none; box-sizing:border-box; ${isEditLocked ? 'opacity:0.6; cursor:not-allowed;' : ''}">
+              <div style="font-size:11.5px; color:var(--ink-muted); margin-top:6px; line-height:1.4;">
+                웹상의 이미지 주소(URL)를 입력하시면 표지가 실시간으로 변경됩니다.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="field-row" style="display:flex; align-items:center; gap:16px; margin-bottom:16px;">
+          <div style="flex:1;">
+            <label style="font-size:12.5px; font-weight:800; color:var(--ink-main); display:block; margin-bottom:6px;">카테고리</label>
+            <select id="edit-category" ${isEditLocked ? 'disabled' : ''} style="width:100%; border: 1.5px solid var(--line-strong); border-radius: 8px; padding: 10px 12px; font-size: 13px; background: #ffffff; color: var(--ink-main); outline: none; box-sizing:border-box; ${isEditLocked ? 'opacity:0.6; cursor:not-allowed;' : ''}">
+              ${['소설', '시/에세이', '인문학', '철학/사상', '역사/세계사', '사회/정치/법', '경제/경영/재테크', '자기계발', '자연/과학/공학', 'IT/컴퓨터/AI', '예술/대중문화', '종교/영성', '건강/취미/여행', '청소년/아동', '만화/웹툰', '외국어/학습', '기타'].map(cat => `<option value="${cat}" ${c.genre === cat ? 'selected' : ''}>${cat}</option>`).join('')}
+            </select>
+          </div>
+          <div style="flex:1;">
+            <label style="font-size:12.5px; font-weight:800; color:var(--ink-main); display:block; margin-bottom:6px;">총 페이지</label>
+            <input type="number" id="edit-total" value="${c.totalPoint || 300}" min="1" ${isEditLocked ? 'readonly disabled' : ''} style="width: 100%; border: 1.5px solid var(--line-strong); border-radius: 8px; padding: 10px 12px; font-size: 13.5px; background: #ffffff; color: var(--ink-main); outline: none; box-sizing:border-box; ${isEditLocked ? 'opacity:0.6; cursor:not-allowed;' : ''}">
+          </div>
+        </div>
+
+        <div class="field-row" style="margin-bottom:22px;">
+          <label style="font-size:12.5px; font-weight:800; color:var(--ink-main); display:block; margin-bottom:6px;">책 소개 (요약)</label>
+          <textarea id="edit-desc" ${isEditLocked ? 'readonly disabled' : ''} style="width:100%; height:100px; border: 1.5px solid var(--line-strong); border-radius: 8px; padding:10px 12px; font-size:13px; background: #ffffff; color:var(--ink-main); resize:none; box-sizing:border-box; outline:none; line-height:1.5; ${isEditLocked ? 'opacity:0.6; cursor:not-allowed;' : ''}">${esc(c.description || '')}</textarea>
+        </div>
+
+        <!-- 취소 및 수정 완료 액션 버튼 -->
+        <div class="modal-actions" style="display:flex; gap:12px; margin-top:24px; margin-bottom:30px;">
+          <button type="button" class="btn-outline" onclick="popOverlay()" style="flex:1; padding:12px 0; border:1px solid var(--line-strong); border-radius:8px; font-size:14px; font-weight:700; background:transparent; color:var(--ink-main); cursor:pointer;">취소</button>
+          <button type="button" class="btn btn-primary" id="edit-submit-btn" ${isEditLocked ? 'disabled' : ''} style="flex:2; padding:12px 0; border-radius:8px; font-size:14px; font-weight:800; border:none; cursor:${isEditLocked ? 'not-allowed' : 'pointer'}; ${isEditLocked ? 'opacity:0.55;' : ''}">${isEditLocked ? '수정 불가 (완독자 10명 이상)' : '수정 완료'}</button>
+        </div>
+
+        <!-- 취소/수정완료 아래 배치된 [📜 수정 히스토리] 영역 -->
+        <div style="border-top:1.5px dashed var(--line-strong); padding-top:24px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+            <div style="font-size:14px; font-weight:800; color:var(--ink-main); display:flex; align-items:center; gap:6px;">
+              <span>📜 수정 히스토리</span>
+              <span style="font-size:11px; background:var(--card-bg); border:1px solid var(--line-subtle); color:var(--accent); padding:2px 8px; border-radius:10px; font-weight:700;">${histories.length}건</span>
+            </div>
+          </div>
+
+          ${histories.length === 0 ? `
+            <div style="font-size:12.5px; color:var(--ink-muted); text-align:center; padding:18px; background:var(--card-bg); border-radius:8px; border:1px solid var(--line-subtle);">
+              아직 이 책의 이전 수정 기록이 없습니다. 정보를 변경하고 [수정 완료]를 누르시면 히스토리가 기록됩니다.
+            </div>
+          ` : `
+            <div style="display:flex; flex-direction:column; gap:10px;">
+              ${histories.map((h, idx) => `
+                <div class="hist-item-row" data-histid="${h.id}" style="background:var(--card-bg); border:1px solid var(--line-subtle); border-radius:8px; padding:10px 14px; font-size:12px; display:flex; justify-content:space-between; align-items:center; cursor:pointer; transition:all 0.15s ease;">
+                  <div style="flex:1; min-width:0; margin-right:12px;">
+                    <div style="font-weight:800; color:var(--ink-main); font-size:12.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                      ver.${histories.length - idx} · <span style="color:var(--accent); font-weight:700;">${esc(h.changeSummary || '전체 정보')} 수정</span>
+                    </div>
+                    <div style="color:var(--ink-muted); font-size:11px; margin-top:3px; display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+                      <span>👤 ${esc(h.editorName || '나')}</span>
+                      <span>·</span>
+                      <span>📅 ${esc(h.editedAt || '')}</span>
+                    </div>
+                  </div>
+                  <div style="display:flex; gap:6px; align-items:center;">
+                    <button type="button" class="btn btn-sm btn-outline restore-hist-btn" data-histid="${h.id}" title="이 버전으로 복구" style="padding:5px 8px; font-size:12px; font-weight:800; border-color:var(--line-strong); flex-shrink:0; cursor:pointer;">
+                      ↺
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline report-hist-btn" data-histid="${h.id}" title="수정 내역 신고" style="padding:5px 8px; font-size:12px; border-color:var(--line-strong); flex-shrink:0; cursor:pointer;">
+                      🚨
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline del-hist-btn" data-histid="${h.id}" title="히스토리 삭제 (관리자)" style="padding:5px 8px; font-size:12px; border-color:var(--line-strong); color:var(--danger, #DC2626); flex-shrink:0; cursor:pointer;">
+                      🗑️
+                    </button>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          `}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function openTierTableModal() {
+  state.modal = { type: 'tierTable' };
+  renderModal();
 }
 
 /* ---------- Impression Modal Bottom Sheet ---------- */
@@ -3092,6 +3661,79 @@ function renderModal() {
   const root = document.getElementById('modalRoot');
   document.body.classList.toggle('modal-open', !!state.modal);
   if (!state.modal) { root.innerHTML = ''; return; }
+
+  if (state.modal.type === 'tierTable') {
+    const userTier = getUserTierInfo();
+    root.innerHTML = `
+      <div class="modal-backdrop top-modal" id="modalBackdrop">
+        <div class="modal-sheet" id="modalSheet" style="max-width:540px; border-radius:12px; margin:auto; padding:20px 24px; box-sizing:border-box;">
+          <div class="modal-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; padding-bottom:12px; border-bottom:1px solid var(--line-subtle);">
+            <div class="title" style="font-weight:900; font-size:17px; color:var(--ink-main); display:flex; align-items:center; gap:8px;">
+              <span>🏆 독서 등급표 안내</span>
+            </div>
+            <button class="close-btn" id="modalClose" aria-label="닫기" style="background:none; border:none; font-size:18px; font-weight:800; cursor:pointer; color:var(--ink-muted);">✕</button>
+          </div>
+
+          <!-- Current User Status Card -->
+          <div style="background:linear-gradient(135deg, ${userTier.bg} 0%, var(--card-bg) 100%); border:1.5px solid ${userTier.color}; border-radius:10px; padding:12px 16px; margin-bottom:16px; display:flex; align-items:center; gap:10px; box-shadow:0 4px 12px rgba(0,0,0,0.06);">
+            <span style="font-size:26px; line-height:1;">${userTier.badge}</span>
+            <div>
+              <div style="font-size:14.5px; font-weight:900; color:var(--ink-main);">
+                현재 내 등급: <span style="color:${userTier.color};">${userTier.name}</span>
+              </div>
+              <div style="font-size:11.5px; color:var(--ink-muted); margin-top:2px;">
+                완독 ${userTier.completedCount}권 달성
+              </div>
+            </div>
+          </div>
+
+          <!-- 9-Level Tier Table -->
+          <div style="max-height:340px; overflow-y:auto; border-radius:8px; border:1px solid var(--line-subtle); margin-bottom:16px;">
+            <table style="width:100%; border-collapse:collapse; font-size:12.5px; text-align:left;">
+              <thead>
+                <tr style="background:var(--paper-bg); border-bottom:1.5px solid var(--line-strong); color:var(--ink-muted); font-size:11.5px; font-weight:800;">
+                  <th style="padding:10px 12px; width:28%;">등급명</th>
+                  <th style="padding:10px 12px; width:36%;">달성 조건</th>
+                  <th style="padding:10px 12px; width:36%;">혜택 및 칭호</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${[
+                  { name: '프론티어', badge: '🌱', req: '책 등록', desc: '도서 등록자 칭호', isCurrent: userTier.name === '프론티어' },
+                  { name: '브론즈', badge: '🥉', req: '완독 3권 이상', desc: '독서 입문자 칭호', isCurrent: userTier.name === '브론즈' },
+                  { name: '실버', badge: '🥈', req: '완독 10권 이상', desc: '꾸준한 독서가 칭호', isCurrent: userTier.name === '실버' },
+                  { name: '골드', badge: '🥇', req: '완독 20권 이상', desc: '숙련된 독서가 칭호', isCurrent: userTier.name === '골드' },
+                  { name: '플래티넘', badge: '💎', req: '완독 50권 이상', desc: '서재 컬렉터 칭호', isCurrent: userTier.name === '플래티넘' },
+                  { name: '에메랄드', badge: '❇️', req: '완독 100권 이상', desc: '백권 독파 다독가', isCurrent: userTier.name === '에메랄드' },
+                  { name: '다이아몬드', badge: '💎', req: '완독 200권 이상', desc: '지식의 거장 칭호', isCurrent: userTier.name === '다이아몬드' },
+                  { name: '마스터', badge: '👑', req: '완독 300권 이상', desc: '마스터 독서가', isCurrent: userTier.name === '마스터' },
+                  { name: '챌린저', badge: '🔥', req: '완독 500권 이상', desc: '전설의 챌린저 (최고 등급)', isCurrent: userTier.name === '챌린저' }
+                ].map(t => `
+                  <tr style="border-bottom:1px solid var(--line-subtle); background:${t.isCurrent ? 'rgba(5, 150, 105, 0.08)' : 'transparent'};">
+                    <td style="padding:10px 12px; font-weight:800; color:var(--ink-main); display:flex; align-items:center; gap:6px;">
+                      <span>${t.badge}</span>
+                      <span>${t.name}</span>
+                    </td>
+                    <td style="padding:10px 12px; color:var(--ink-main); font-weight:600;">${t.req}</td>
+                    <td style="padding:10px 12px; color:var(--ink-muted); font-size:11.5px;">${t.desc}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+
+          <div style="text-align:right;">
+            <button type="button" class="btn btn-primary" onclick="closeModal()" style="padding:9px 24px; font-size:13px; font-weight:800; border-radius:6px; border:none; cursor:pointer;">확인</button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    requestAnimationFrame(() => document.getElementById('modalBackdrop')?.classList.add('show'));
+    document.getElementById('modalClose').onclick = closeModal;
+    document.getElementById('modalBackdrop').onclick = e => { if (e.target.id === 'modalBackdrop') closeModal(); };
+    return;
+  }
 
   if (state.modal.type === 'settings') {
     const curTheme = state.theme || 'LIGHT';
@@ -3609,6 +4251,8 @@ function renderModal() {
     return;
   }
 
+
+
   if (state.modal.type === 'notifications') {
     const notificationsList = [
       { id: 'n1', icon: '💬', title: '김서연님이 회원님의 문장에 공감했습니다.', time: '방금 전', unread: true },
@@ -3668,45 +4312,91 @@ function renderModal() {
   if (state.modal.type === 'register') {
     root.innerHTML = `
       <div class="modal-backdrop top-modal" id="modalBackdrop">
-        <div class="modal-sheet" id="modalSheet" style="">
-          <div class="modal-header" style="padding-top: 14px; padding-bottom: 8px;">
-            <div class="title" style="font-weight: 800; font-size: 16px;">📚 새 책 등록하기</div>
+        <div class="modal-sheet" id="modalSheet" style="width:100%; max-width:100%; height:100vh; border-radius:0; margin:0; display:flex; flex-direction:column;">
+          <div class="modal-header" style="padding-top: 16px; padding-bottom: 12px; flex-shrink:0;">
+            <div class="title" style="font-weight: 800; font-size: 17px;">📚 새 책 등록하기</div>
             <button class="close-btn" id="modalClose" aria-label="닫기">✕</button>
           </div>
-          <div class="modal-body" style="padding: 12px 20px 24px; max-height: 480px; overflow-y: auto;">
-            <!-- 카카오 도서 검색 영역 -->
-            <label class="form-label" style="font-weight:700; font-size:12.5px; margin-bottom:6px; display:block; color:var(--ink-main);">🔍 카카오 도서 검색</label>
-            <div style="display:flex; gap:6px; margin-bottom:14px;">
-              <input type="text" id="modal-kakao-search-input" placeholder="책 제목, 저자 입력..." style="flex:1; padding:10px 12px; border:1px solid var(--line-strong); border-radius:3px; font-size:13.5px; background:var(--paper-bg); color:var(--ink-main);">
-              <button class="btn btn-primary" id="modal-kakao-search-btn" style="padding:0 14px; font-size:13px; font-weight:800; border-radius:3px;">검색</button>
-            </div>
-
-            <!-- 검색 결과 컨테이너 -->
-            <div id="modal-kakao-results" style="margin-bottom:14px;"></div>
-
-            <div style="border-top:1px solid var(--line-subtle); margin:16px 0; position:relative; text-align:center;">
-              <span style="position:relative; top:-10px; background:var(--card-bg); padding:0 10px; font-size:11.5px; color:var(--ink-muted); font-weight:700;">또는 직접 입력하여 등록</span>
-            </div>
-
-            <!-- 직접 수동 입력 폼 -->
-            <label class="form-label" style="font-weight:700; font-size:12.5px; margin-bottom:4px; display:block; color:var(--ink-main);">📖 책 제목 *</label>
-            <input type="text" id="modal-rg-title" placeholder="책 제목" style="width:100%; padding:10px; font-size:13.5px; border:1px solid var(--line-strong); border-radius:3px; background:var(--paper-bg); color:var(--ink-main); box-sizing:border-box; margin-bottom:10px;">
-
-            <label class="form-label" style="font-weight:700; font-size:12.5px; margin-bottom:4px; display:block; color:var(--ink-main);">✍️ 저자 / 옮긴이</label>
-            <input type="text" id="modal-rg-creator" placeholder="저자 이름" style="width:100%; padding:10px; font-size:13.5px; border:1px solid var(--line-strong); border-radius:3px; background:var(--paper-bg); color:var(--ink-main); box-sizing:border-box; margin-bottom:10px;">
-
-            <div style="display:flex; gap:10px; margin-bottom:16px;">
-              <div style="flex:1;">
-                <label class="form-label" style="font-weight:700; font-size:12.5px; margin-bottom:4px; display:block; color:var(--ink-main);">🏷 장르</label>
-                <input type="text" id="modal-rg-genre" placeholder="소설, 인문 등" style="width:100%; padding:10px; font-size:13.5px; border:1px solid var(--line-strong); border-radius:3px; background:var(--paper-bg); color:var(--ink-main); box-sizing:border-box;">
+          <div class="modal-body" style="padding: 12px 20px 24px; flex:1; overflow-y: auto;">
+            
+            <!-- 1. 책 검색 뷰 (초기 전면 표출) -->
+            <div id="modal-reg-view-search" style="display:block;">
+              <div style="font-size:14px; font-weight:800; color:var(--ink-main); margin-bottom:12px; display:flex; align-items:center; gap:6px;">
+                🔍 책 검색으로 등록하기
               </div>
-              <div style="flex:1;">
-                <label class="form-label" style="font-weight:700; font-size:12.5px; margin-bottom:4px; display:block; color:var(--ink-main);">📍 전체 쪽수</label>
-                <input type="number" id="modal-rg-total" placeholder="300" style="width:100%; padding:10px; font-size:13.5px; border:1px solid var(--line-strong); border-radius:3px; background:var(--paper-bg); color:var(--ink-main); box-sizing:border-box;">
+              <div class="flex gap-8 mb-12" style="display:flex; gap:8px; margin-bottom:12px;">
+                <select id="modal-kakao-target-select" style="width: 78px; flex-shrink: 0; border: 1.5px solid var(--line-strong); border-radius: 8px; padding: 9px 4px; font-size: 12px; font-weight: 700; background: var(--paper-bg); color: var(--ink-main); outline: none; text-align: center;">
+                  <option value="title">제목</option>
+                  <option value="person">저자</option>
+                  <option value="publisher">출판사</option>
+                  <option value="isbn">ISBN</option>
+                </select>
+                <input type="text" id="modal-kakao-search-input" placeholder="책 제목, 저자, 출판사, ISBN 검색" value="" style="flex: 1 1 0%; border: 1.5px solid var(--line-strong); border-radius: 10px; padding: 9px 12px; font-size: 13px; background: var(--paper-bg); color: var(--ink-main); outline: none;">
+                <button type="button" class="btn btn-sm btn-primary" id="modal-kakao-search-btn" style="padding:0 16px; font-size:13px; font-weight:800; border-radius:8px; flex-shrink:0;">검색</button>
               </div>
+
+              <!-- 초기 빈 상태 UI -->
+              <div id="modal-kakao-empty-state" class="empty-state" style="padding: 36px 16px; text-align:center; color:var(--ink-muted); background:var(--card-bg); border-radius:10px; border:1px dashed var(--line-subtle); margin-bottom:12px;">
+                <div class="emoji" style="font-size:38px; margin-bottom:8px;">📚</div>
+                <div style="font-size:13px; font-weight:700; color:var(--ink-main);">책 제목, 저자, 출판사, ISBN으로 검색해보세요.</div>
+              </div>
+
+              <!-- 검색 결과 컨테이너 -->
+              <div id="modal-kakao-results" style="max-height: 320px; overflow-y: auto; display:flex; flex-direction:column; gap:8px;"></div>
             </div>
 
-            <button class="btn btn-primary full" id="modal-rg-submit" style="padding:13px; font-size:15px; font-weight:800; border-radius:3px;">내 서재에 등록하기</button>
+            <!-- 2. 추가 입력 뷰 (검색 후 선택 시 전환) -->
+            <div id="modal-reg-view-manual" style="display:none;">
+              <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; padding-bottom:10px; border-bottom:1px solid var(--line-subtle);">
+                <div style="font-size:14px; font-weight:800; color:var(--ink-main);">✏️ 선택한 도서 정보 확인 및 추가 입력</div>
+                <button type="button" id="modal-rg-back-to-search-btn" style="background:none; border:none; color:var(--accent); font-size:12.5px; font-weight:800; cursor:pointer;">← 다시 책 검색하기</button>
+              </div>
+              <!-- 썸네일 미리보기 컨테이너 -->
+              <div id="modal-rg-cover-preview" style="margin-bottom:12px;"></div>
+
+              <div class="field-row" style="margin-bottom:12px;">
+                <label style="font-size:12.5px; font-weight:700; color:var(--ink-main); display:block; margin-bottom:4px;">제목 <span style="font-size:11px; font-weight:500; color:var(--ink-muted);">🔒 (수정 불가)</span></label>
+                <input type="text" id="modal-rg-title" placeholder="책 제목" value="" readonly disabled style="width:100%; border: 1.5px solid var(--line-subtle); border-radius: 8px; padding: 9px 12px; font-size: 13px; background: #ffffff; color: var(--ink-muted); opacity: 0.8; cursor: not-allowed; box-sizing:border-box;">
+              </div>
+
+              <div class="field-row" style="margin-bottom:12px;">
+                <label style="font-size:12.5px; font-weight:700; color:var(--ink-main); display:block; margin-bottom:4px;">저자 <span style="font-size:11px; font-weight:500; color:var(--ink-muted);">🔒 (수정 불가)</span></label>
+                <input type="text" id="modal-rg-creator" placeholder="저자" value="" readonly disabled style="width:100%; border: 1.5px solid var(--line-subtle); border-radius: 8px; padding: 9px 12px; font-size: 13px; background: #ffffff; color: var(--ink-muted); opacity: 0.8; cursor: not-allowed; box-sizing:border-box;">
+              </div>
+
+              <div class="field-row" style="margin-bottom:12px;">
+                <label style="font-size:12.5px; font-weight:700; color:var(--ink-main); display:block; margin-bottom:4px;">출판사 <span style="font-size:11px; font-weight:500; color:var(--ink-muted);">🔒 (수정 불가)</span></label>
+                <input type="text" id="modal-rg-publisher" placeholder="출판사" value="" readonly disabled style="width:100%; border: 1.5px solid var(--line-subtle); border-radius: 8px; padding: 9px 12px; font-size: 13px; background: #ffffff; color: var(--ink-muted); opacity: 0.8; cursor: not-allowed; box-sizing:border-box;">
+              </div>
+
+              <div class="field-row" style="margin-bottom:12px;">
+                <label style="font-size:12.5px; font-weight:700; color:var(--ink-main); display:block; margin-bottom:4px;">ISBN 번호 <span style="font-size:11px; font-weight:500; color:var(--ink-muted);">🔒 (고정 메타 정보)</span></label>
+                <input type="text" id="modal-rg-isbn" placeholder="ISBN 번호" value="" readonly disabled style="width:100%; border: 1.5px solid var(--line-subtle); border-radius: 8px; padding: 9px 12px; font-size: 13px; background: #ffffff; color: var(--ink-muted); opacity: 0.8; cursor: not-allowed; box-sizing:border-box;">
+              </div>
+
+              <div class="field-row" style="display:flex; align-items:center; gap:16px; margin-bottom:12px;">
+                <div>
+                  <label style="font-size:12.5px; font-weight:700; color:var(--ink-main); display:block; margin-bottom:4px;">카테고리</label>
+                  <select id="modal-rg-category" style="width:140px; border: 1.5px solid var(--line-strong); border-radius: 8px; padding: 9px 10px; font-size: 12.5px; background: var(--paper-bg); color: var(--ink-main); outline: none; box-sizing:border-box;">
+                    ${['소설', '시/에세이', '인문학', '철학/사상', '역사/세계사', '사회/정치/법', '경제/경영/재테크', '자기계발', '자연/과학/공학', 'IT/컴퓨터/AI', '예술/대중문화', '종교/영성', '건강/취미/여행', '청소년/아동', '만화/웹툰', '외국어/학습', '기타'].map(cat => `<option value="${cat}">${cat}</option>`).join('')}
+                  </select>
+                </div>
+                <div>
+                  <label style="font-size:12.5px; font-weight:700; color:var(--ink-main); display:block; margin-bottom:4px;">총 페이지 <span style="font-weight: 400; color: var(--ink-muted);">(선택)</span></label>
+                  <input type="number" id="modal-rg-total" placeholder="300" min="1" value="" style="width: 100px; border: 1.5px solid var(--line-strong); border-radius: 8px; padding: 9px 10px; font-size: 13px; background: var(--paper-bg); color: var(--ink-main); outline: none; box-sizing:border-box;">
+                </div>
+              </div>
+
+              <div class="field-row" style="margin-bottom:16px;">
+                <label style="font-size:12.5px; font-weight:700; color:var(--ink-main); display:block; margin-bottom:4px;">책 소개 (요약)</label>
+                <textarea id="modal-rg-desc" placeholder="책의 줄거리나 요약 정보" style="width:100%; height:64px; border: 1.5px solid var(--line-strong); border-radius: 8px; padding:9px 12px; font-size:13px; background:var(--paper-bg); color:var(--ink-main); resize:none; box-sizing:border-box; outline:none;"></textarea>
+              </div>
+
+              <div class="modal-actions" style="display:flex; gap:10px; margin-top:20px;">
+                <button type="button" class="btn-outline" id="modal-rg-cancel-btn" style="flex:1; padding:11px 0; border:1px solid var(--line-strong); border-radius:8px; font-size:13.5px; font-weight:700; background:transparent; color:var(--ink-main); cursor:pointer;">취소</button>
+                <button type="button" class="btn btn-primary" id="modal-rg-submit" style="flex:2; padding:11px 0; border-radius:8px; font-size:13.5px; font-weight:800; border:none; cursor:pointer;">등록하기</button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -3716,38 +4406,69 @@ function renderModal() {
     document.getElementById('modalClose').onclick = closeModal;
     document.getElementById('modalBackdrop').onclick = e => { if (e.target.id === 'modalBackdrop') closeModal(); };
 
+    const searchTabBtn = document.getElementById('modal-reg-tab-search');
+    const manualTabBtn = document.getElementById('modal-reg-tab-manual');
+    const searchView = document.getElementById('modal-reg-view-search');
+    const manualView = document.getElementById('modal-reg-view-manual');
+
+    if (searchTabBtn && manualTabBtn) {
+      searchTabBtn.onclick = () => {
+        if (searchView) searchView.style.display = 'block';
+        if (manualView) manualView.style.display = 'none';
+        searchTabBtn.classList.add('active');
+        searchTabBtn.style.background = 'var(--paper-bg)';
+        searchTabBtn.style.boxShadow = '0 2px 6px rgba(0,0,0,0.08)';
+        manualTabBtn.classList.remove('active');
+        manualTabBtn.style.background = 'transparent';
+        manualTabBtn.style.boxShadow = 'none';
+      };
+      manualTabBtn.onclick = () => {
+        if (searchView) searchView.style.display = 'none';
+        if (manualView) manualView.style.display = 'block';
+        manualTabBtn.classList.add('active');
+        manualTabBtn.style.background = 'var(--paper-bg)';
+        manualTabBtn.style.boxShadow = '0 2px 6px rgba(0,0,0,0.08)';
+        searchTabBtn.classList.remove('active');
+        searchTabBtn.style.background = 'transparent';
+        searchTabBtn.style.boxShadow = 'none';
+      };
+    }
+
     const searchInput = document.getElementById('modal-kakao-search-input');
     const searchBtn = document.getElementById('modal-kakao-search-btn');
+    let modalSelectedCover = null;
+    let modalSelectedSiteContentId = null;
+    let modalSelectedSourceProvider = null;
+    let modalSelectedIsbn = null;
 
     if (searchBtn && searchInput) {
       const doSearch = async () => {
         const query = searchInput.value.trim();
         if (!query) { toast('검색어를 입력해 주세요.'); return; }
+        const target = document.getElementById('modal-kakao-target-select')?.value || 'title';
         const resBox = document.getElementById('modal-kakao-results');
+        const emptyState = document.getElementById('modal-kakao-empty-state');
+        if (emptyState) emptyState.style.display = 'none';
+
         if (!resBox) return;
-        resBox.innerHTML = `<div style="text-align:center; padding:12px; font-size:12.5px; color:var(--ink-muted);">🔍 '${esc(query)}' 도서 검색 중...</div>`;
+        resBox.innerHTML = `<div style="text-align:center; padding:20px; font-size:12.5px; color:var(--ink-muted);">🔍 '${esc(query)}' 도서 검색 중...</div>`;
         try {
-          const res = await fetch(`https://dapi.kakao.com/v3/search/book?query=${encodeURIComponent(query)}`, {
-            headers: { Authorization: 'KakaoAK REST_API_KEY_PRESET' }
-          });
-          if (!res.ok) throw new Error();
-          const data = await res.json();
-          const books = data.documents || [];
+          const books = await fetchMultiSourceBooks(query, target);
           if (books.length === 0) {
-            resBox.innerHTML = `<div style="text-align:center; padding:12px; font-size:12.5px; color:var(--ink-muted);">검색 결과가 없습니다. 직접 입력해 주세요.</div>`;
+            resBox.innerHTML = `<div style="text-align:center; padding:20px; font-size:12.5px; color:var(--ink-muted);">검색 결과가 없습니다. '추가 입력' 탭에서 입력해 주세요.</div>`;
             return;
           }
           resBox.innerHTML = `
             <div style="font-size:12px; font-weight:700; color:var(--ink-muted); margin-bottom:8px;">검색 결과 ${books.length}건</div>
-            <div style="display:flex; flex-direction:column; gap:8px; max-height:200px; overflow-y:auto;">
+            <div style="display:flex; flex-direction:column; gap:8px; max-height:300px; overflow-y:auto;">
               ${books.map((b, idx) => `
                 <div class="card" style="display:flex; gap:10px; align-items:center; padding:8px 10px; cursor:pointer;" data-selectkbook="${idx}">
-                  ${b.thumbnail ? `<img src="${b.thumbnail}" style="width:32px; height:46px; border-radius:3px; object-fit:cover;">` : `<div style="width:32px; height:46px; border-radius:3px; background:var(--accent); display:flex; align-items:center; justify-content:center; color:#FFF; font-size:14px;">📖</div>`}
+                  ${b.thumbnail ? `<img src="${b.thumbnail}" style="width:36px; height:50px; border-radius:4px; object-fit:contain; flex-shrink:0;">` : `<div style="width:36px; height:50px; border-radius:4px; background:var(--accent); display:flex; align-items:center; justify-content:center; color:#FFF; font-size:14px; flex-shrink:0;">📖</div>`}
                   <div style="flex:1; min-width:0;">
                     <div style="font-size:13px; font-weight:800; color:var(--ink-main); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${esc(b.title)}</div>
-                    <div style="font-size:11.5px; color:var(--ink-muted);">${esc(b.authors?.join(', ') || '')} · ${esc(b.publisher || '')}</div>
+                    <div style="font-size:11.5px; color:var(--ink-muted); margin-top:2px;">${esc(b.authors || '저자 미상')} · ${esc(b.publisher || '출판사 미상')} ${b.source ? `<span style="font-size:10px; background:var(--paper-bg); padding:1px 4px; border-radius:3px; border:1px solid var(--line-subtle); margin-left:4px; color:var(--accent); font-weight:700;">${b.source}</span>` : ''}</div>
                   </div>
-                  <button class="btn btn-primary" style="padding:4px 8px; font-size:11px; font-weight:700; flex-shrink:0;">선택</button>
+                  <button type="button" class="btn btn-sm btn-primary" style="padding:5px 10px; font-size:11px; font-weight:800; flex-shrink:0;">선택</button>
                 </div>
               `).join('')}
             </div>
@@ -3756,15 +4477,99 @@ function renderModal() {
             el.onclick = () => {
               const selected = books[+el.dataset.selectkbook];
               if (selected) {
-                document.getElementById('modal-rg-title').value = selected.title || '';
-                document.getElementById('modal-rg-creator').value = selected.authors?.join(', ') || '';
-                document.getElementById('modal-rg-genre').value = selected.publisher || '소설';
-                toast(`'${selected.title}' 정보가 입력되었습니다.`);
+                // 이미 우리 사이트에 등록된 도서인지 확인 (ISBN 또는 siteContentId 또는 제목 기준)
+                const selIsbn = (selected.isbn || '').trim();
+                const selTitle = (selected.title || '').trim().toLowerCase();
+                const existingBook = (selected.siteContentId && db.contents.find(c => c.id === selected.siteContentId)) ||
+                                     (selIsbn && db.contents.find(c => c.isbn && c.isbn.trim() === selIsbn)) ||
+                                     db.contents.find(c => c.title && selTitle && c.title.trim().toLowerCase() === selTitle);
+
+                if (existingBook) {
+                  // 이미 등록된 등록 도서인 경우 -> 수정 폼 전환 없이 바로 내 서재('읽는 중')로 담고 모달 닫기!
+                  const targetId = existingBook.id;
+                  let myCont = db.myContent.find(m => m.contentId === targetId);
+                  if (!myCont) {
+                    db.myContent.push({
+                      contentId: targetId,
+                      status: 'ACTIVE',
+                      currentPoint: 0,
+                      startDate: new Date().toISOString().slice(0, 10).replace(/-/g, '.'),
+                      finishDate: null,
+                      lastActivePoint: 0
+                    });
+                  } else {
+                    myCont.status = 'ACTIVE';
+                  }
+                  saveDB();
+                  toast(`'${existingBook.title}' 기존 등록 도서를 내 서재('읽는 중')로 담았습니다!`);
+                  closeModal();
+                  state.overlayStack = [{ type: 'detail', contentId: targetId }];
+                  render();
+                  return;
+                } else {
+                  // 신규 외부 API 도서인 경우 -> 추가 입력 탭으로 뷰 전환 후 폼 채움
+                  if (searchView) searchView.style.display = 'none';
+                  if (manualView) manualView.style.display = 'block';
+                  if (searchTabBtn) {
+                    searchTabBtn.classList.remove('active');
+                    searchTabBtn.style.background = 'transparent';
+                    searchTabBtn.style.boxShadow = 'none';
+                  }
+                  if (manualTabBtn) {
+                    manualTabBtn.classList.add('active');
+                    manualTabBtn.style.background = 'var(--paper-bg)';
+                    manualTabBtn.style.boxShadow = '0 2px 6px rgba(0,0,0,0.08)';
+                  }
+
+                  const titleEl = document.getElementById('modal-rg-title');
+                  const creatorEl = document.getElementById('modal-rg-creator');
+                  const pubEl = document.getElementById('modal-rg-publisher');
+                  const descEl = document.getElementById('modal-rg-desc');
+                  const catEl = document.getElementById('modal-rg-category');
+                  const totalEl = document.getElementById('modal-rg-total');
+
+                  if (titleEl) titleEl.value = selected.title || '';
+                  if (creatorEl) creatorEl.value = typeof selected.authors === 'string' ? selected.authors : (selected.authors?.join(', ') || '저자 미상');
+                  if (pubEl) pubEl.value = selected.publisher || '출판사 미상';
+                  if (descEl) descEl.value = selected.contents || '';
+                  const modalIsbnEl = document.getElementById('modal-rg-isbn');
+                  if (modalIsbnEl) modalIsbnEl.value = selected.isbn || '';
+                  modalSelectedCover = selected.thumbnail || null;
+                  modalSelectedSiteContentId = null;
+                  modalSelectedSourceProvider = selected.source || '추가 입력';
+                  modalSelectedIsbn = selected.isbn || '';
+
+                  const pages = extractPageCount(selected);
+                  if (pages && totalEl) totalEl.value = pages;
+
+                  const previewEl = document.getElementById('modal-rg-cover-preview');
+                  if (previewEl && selected.thumbnail) {
+                    previewEl.innerHTML = `
+                      <div style="display:flex; align-items:center; gap:12px; padding:10px; background:var(--paper-bg); border:1px solid var(--line-subtle); border-radius:6px; margin-bottom:12px;">
+                        <img src="${selected.thumbnail}" style="width:42px; height:58px; object-fit:contain; border-radius:4px; box-shadow:0 2px 6px rgba(0,0,0,0.12);">
+                        <div style="font-size:12px; color:var(--ink-main); line-height:1.4;">
+                          <div style="font-weight:800;">🖼️ 표지 이미지 선택됨 (${esc(selected.source || '외부 API')})</div>
+                          <div style="font-size:11px; color:var(--ink-muted); margin-top:2px;">${pages ? `📄 자동 감지된 페이지 수: ${pages}쪽` : '페이지 수 직접 확인 및 수정 가능'}</div>
+                        </div>
+                      </div>
+                    `;
+                  }
+
+                  toast(`'${selected.title}'` + (pages ? ` (${pages}쪽)` : '') + ' 정보를 가져왔어요! 확인 후 등록하세요.');
+
+                  const modalBackBtn = document.getElementById('modal-rg-back-to-search-btn');
+                  if (modalBackBtn) {
+                    modalBackBtn.onclick = () => {
+                      if (searchView) searchView.style.display = 'block';
+                      if (manualView) manualView.style.display = 'none';
+                    };
+                  }
+                }
               }
             };
           });
         } catch (e) {
-          resBox.innerHTML = `<div style="text-align:center; padding:12px; font-size:12.5px; color:var(--ink-muted);">검색 API 실패 (아래에 직접 입력해 주세요)</div>`;
+          if (resBox) resBox.innerHTML = `<div style="text-align:center; padding:20px; font-size:12.5px; color:var(--ink-muted);">검색 API 실패 ('추가 입력' 탭에서 작성해 주세요)</div>`;
         }
       };
 
@@ -3772,25 +4577,74 @@ function renderModal() {
       searchInput.onkeydown = e => { if (e.key === 'Enter') doSearch(); };
     }
 
-    document.getElementById('modal-rg-submit').onclick = () => {
-      const title = (document.getElementById('modal-rg-title').value || '').trim();
-      const creator = (document.getElementById('modal-rg-creator').value || '').trim();
-      const genre = (document.getElementById('modal-rg-genre').value || '').trim();
-      const totalVal = document.getElementById('modal-rg-total').value;
-      const totalPoint = parseInt(totalVal, 10) || 300;
+    const modalCancelBtn = document.getElementById('modal-rg-cancel-btn');
+    if (modalCancelBtn) modalCancelBtn.onclick = closeModal;
 
-      if (!title) { toast('책 제목을 입력해 주세요.'); return; }
+    const modalSubmitBtn = document.getElementById('modal-rg-submit');
+    if (modalSubmitBtn) {
+      modalSubmitBtn.onclick = () => {
+        const title = (document.getElementById('modal-rg-title')?.value || '').trim();
+        const creator = (document.getElementById('modal-rg-creator')?.value || '').trim();
+        const publisher = (document.getElementById('modal-rg-publisher')?.value || '').trim();
+        const category = document.getElementById('modal-rg-category')?.value || '소설';
+        const totalVal = document.getElementById('modal-rg-total')?.value;
+        const desc = (document.getElementById('modal-rg-desc')?.value || '').trim();
+        const totalPoint = parseInt(totalVal, 10) || 300;
 
-      const id = uid('c');
-      const content = { id, type: 'BOOK', title, creator, cover: null, genre: genre || '소설', totalPoint };
-      db.contents.push(content);
-      saveDB();
+        if (!title) { toast('책 제목을 입력해 주세요.'); return; }
 
-      toast(`'${title}'을(를) 새로 추가했어요!`);
-      closeModal();
-      pushOverlay({ type: 'detail', contentId: id });
-      render();
-    };
+        let existingContent = db.contents.find(c =>
+          (modalSelectedSiteContentId && c.id === modalSelectedSiteContentId) ||
+          (modalSelectedIsbn && c.isbn && c.isbn.trim() === modalSelectedIsbn.trim()) ||
+          (c.title && title && c.title.trim().toLowerCase() === title.toLowerCase() && c.creator && creator && c.creator.trim().toLowerCase() === creator.toLowerCase()) ||
+          (c.title && title && c.title.trim().toLowerCase() === title.toLowerCase() && !creator)
+        );
+
+        const isNewSiteBook = !existingContent;
+        const id = existingContent ? existingContent.id : uid('c');
+        if (!existingContent) {
+          const content = { id, type: 'BOOK', title, creator: creator || '저자 미상', publisher: publisher || '출판사 미상', genre: category, isbn: modalSelectedIsbn || '', totalPoint, description: desc || '', cover: modalSelectedCover || null, sourceProvider: modalSelectedSourceProvider || '추가 입력' };
+          db.contents.push(content);
+          if (!db.user) db.user = {};
+          db.user.hasRegisteredFirstBook = true;
+          db.user.frontierCount = (db.user.frontierCount || 0) + 1;
+        } else {
+          if (modalSelectedCover && !existingContent.cover) existingContent.cover = modalSelectedCover;
+          if (desc && (!existingContent.description || existingContent.description.length < desc.length)) existingContent.description = desc;
+          if (modalSelectedSourceProvider && !existingContent.sourceProvider) existingContent.sourceProvider = modalSelectedSourceProvider;
+          if (modalSelectedIsbn && !existingContent.isbn) existingContent.isbn = modalSelectedIsbn;
+          if (publisher && (!existingContent.publisher || existingContent.publisher === '출판사 미상')) existingContent.publisher = publisher;
+        }
+
+        // 내 서재 독서 상태 '읽는 중(ACTIVE)'으로 자동 등록
+        let myCont = db.myContent.find(m => m.contentId === id);
+        if (!myCont) {
+          db.myContent.push({
+            contentId: id,
+            status: 'ACTIVE',
+            currentPoint: 0,
+            startDate: new Date().toISOString().slice(0, 10).replace(/-/g, '.'),
+            finishDate: null,
+            lastActivePoint: 0
+          });
+        } else {
+          myCont.status = 'ACTIVE';
+        }
+
+        modalSelectedCover = null;
+        modalSelectedSiteContentId = null;
+        saveDB();
+
+        if (isNewSiteBook) {
+          toast(`🎉 우리 DB에 없는 책을 처음 등록하셨습니다! [🌱 프론티어] 등급을 달성하셨습니다!`);
+        } else {
+          toast(`'${title}'을(를) '읽는 중' 서재에 추가했어요!`);
+        }
+        closeModal();
+        pushOverlay({ type: 'detail', contentId: id });
+        render();
+      };
+    }
     return;
   }
 }
@@ -4210,7 +5064,7 @@ function attachEvents(ov) {
   if (backBtn) backBtn.onclick = popOverlay;
 
   const headAddBook = document.getElementById('headAddBook');
-  if (headAddBook) headAddBook.onclick = () => { openModal({ type: 'register' }); };
+  if (headAddBook) headAddBook.onclick = () => { pushOverlay({ type: 'register' }); };
 
   const btnChangeBook = document.getElementById('btn-change-activebook');
   if (btnChangeBook) btnChangeBook.onclick = () => { openModal({ type: 'changeActiveBook' }); };
@@ -4330,7 +5184,7 @@ function attachEvents(ov) {
 
     if (state.tab === 'library') {
       const libAddBookBtn = document.getElementById('libAddBookBtn');
-      if (libAddBookBtn) libAddBookBtn.onclick = () => { openModal({ type: 'register' }); };
+      if (libAddBookBtn) libAddBookBtn.onclick = () => { pushOverlay({ type: 'register' }); };
 
       const libSearchInput = document.getElementById('libSearchInput');
       if (libSearchInput) {
@@ -4454,8 +5308,42 @@ function attachEvents(ov) {
   }
 
   if (currentOvType === 'register') {
+    const btnSearchTab = document.getElementById('reg-tab-search');
+    const btnManualTab = document.getElementById('reg-tab-manual');
+    const viewSearch = document.getElementById('reg-view-search');
+    const viewManual = document.getElementById('reg-view-manual');
+
+    if (btnSearchTab && btnManualTab) {
+      btnSearchTab.onclick = () => {
+        regTab = 'search';
+        if (viewSearch) viewSearch.style.display = 'block';
+        if (viewManual) viewManual.style.display = 'none';
+        btnSearchTab.classList.add('active');
+        btnSearchTab.style.background = 'var(--paper-bg)';
+        btnSearchTab.style.boxShadow = '0 2px 6px rgba(0,0,0,0.08)';
+        btnManualTab.classList.remove('active');
+        btnManualTab.style.background = 'transparent';
+        btnManualTab.style.boxShadow = 'none';
+      };
+      btnManualTab.onclick = () => {
+        regTab = 'manual';
+        if (viewSearch) viewSearch.style.display = 'none';
+        if (viewManual) viewManual.style.display = 'block';
+        btnManualTab.classList.add('active');
+        btnManualTab.style.background = 'var(--paper-bg)';
+        btnManualTab.style.boxShadow = '0 2px 6px rgba(0,0,0,0.08)';
+        btnSearchTab.classList.remove('active');
+        btnSearchTab.style.background = 'transparent';
+        btnSearchTab.style.boxShadow = 'none';
+      };
+    }
+
     const kbtn = document.getElementById('kakao-search-btn');
     if (kbtn) kbtn.onclick = searchKakaoBooks;
+    const kinp = document.getElementById('kakao-query');
+    if (kinp) kinp.onkeydown = e => { if (e.key === 'Enter') searchKakaoBooks(); };
+    const cancelBtn = document.getElementById('rg-cancel-btn');
+    if (cancelBtn) cancelBtn.onclick = popOverlay;
     const rgSubmit = document.getElementById('rg-submit');
     if (rgSubmit) rgSubmit.onclick = submitRegister;
   }
@@ -4743,14 +5631,37 @@ function attachEvents(ov) {
       });
     }
 
+    const editBookBtn = document.getElementById('editBookBtn');
+    if (editBookBtn && c) {
+      editBookBtn.onclick = () => {
+        if (detailMoreDropdown) detailMoreDropdown.style.display = 'none';
+
+        // 위키 수정 권한 체크: 내가 서재에 등록하고 독서(또는 보관) 중인 책이어야 함
+        const isMyBook = db.myContent && db.myContent.some(m => m.contentId === c.id);
+        if (!isMyBook) {
+          toast('내가 서재에 등록하고 읽는 중(또는 보관 중)인 책만 위키 정보를 수정할 수 있습니다.');
+          return;
+        }
+
+        // 완독자 10명 이상인 도서는 수정 불가 잠금 처리
+        const completedCount = (db.myContent || []).filter(m => m.contentId === c.id && m.status === 'COMPLETED').length;
+        if (completedCount >= 10) {
+          toast(`🔒 완독한 독자가 10명 이상(현재 ${completedCount}명)인 도서는 정보 보호를 위해 수정을 할 수 없습니다.`);
+          return;
+        }
+
+        pushOverlay({ type: 'editBook', contentId: c.id });
+      };
+    }
+
     const deleteBookBtn = document.getElementById('deleteBookBtn');
     if (deleteBookBtn && c) {
       deleteBookBtn.onclick = () => {
         if (confirm(`'${c.title}' 책과 작성한 내 기록을 정말로 삭제하시겠습니까?`)) {
-          db.contents = db.contents.filter(x => x.id !== c.id);
-          db.myContent = db.myContent.filter(x => x.contentId !== c.id);
-          db.posts = db.posts.filter(x => x.contentId !== c.id);
-          if (db.activeBookId === c.id) db.activeBookId = db.contents[0]?.id || null;
+          const targetId = c.id;
+          db.myContent = db.myContent.filter(x => x.contentId !== targetId);
+          db.posts = db.posts.filter(x => x.contentId !== targetId && x.mine);
+          cleanupUnusedBook(targetId);
           saveDB();
           toast('책과 기록이 삭제되었습니다.');
           popOverlay();
@@ -4764,7 +5675,9 @@ function attachEvents(ov) {
 
       // Re-click active status button -> CANCEL / TOGGLE OFF STATUS!
       if (my && my.status === st) {
-        db.myContent = db.myContent.filter(x => x.contentId !== c.id);
+        const targetId = c.id;
+        db.myContent = db.myContent.filter(x => x.contentId !== targetId);
+        cleanupUnusedBook(targetId);
         saveDB();
         toast('독서 상태 선택이 해제되었습니다.');
         render();
@@ -4902,11 +5815,172 @@ function attachEvents(ov) {
         }
       };
     });
-
-    
   }
 
+  if (currentOvType === 'editBook') {
+    const c = getContent(ov.contentId);
+    if (c) {
+      const editCoverInput = document.getElementById('edit-cover');
+      const editCoverPreviewBox = document.getElementById('edit-cover-preview-box');
+      const updateCoverPreview = () => {
+        if (!editCoverInput || !editCoverPreviewBox) return;
+        const url = editCoverInput.value.trim();
+        if (url) {
+          editCoverPreviewBox.innerHTML = `<img src="${esc(url)}" style="width:100%; height:100%; object-fit:cover;" onerror="this.parentNode.innerHTML='<span style=\\'font-size:11px; color:var(--danger, #DC2626); font-weight:700;\\'>오류</span>'">`;
+        } else {
+          editCoverPreviewBox.innerHTML = '<span style="font-size:24px;">🖼️</span>';
+        }
+      };
+      if (editCoverInput) editCoverInput.addEventListener('input', updateCoverPreview);
 
+      // 실제 변경된 항목만 선택 적용하는 도우미 함수
+      const applyModifiedFieldsToForm = (targetHist) => {
+        if (!targetHist) return;
+        const keys = targetHist.changedKeys;
+        const editCover = document.getElementById('edit-cover');
+        const editCategory = document.getElementById('edit-category');
+        const editTotal = document.getElementById('edit-total');
+        const editDesc = document.getElementById('edit-desc');
+
+        const appliedNames = [];
+
+        if (Array.isArray(keys) && keys.length > 0) {
+          if (keys.includes('cover') && editCover) {
+            editCover.value = targetHist.cover || '';
+            updateCoverPreview();
+            appliedNames.push('표지');
+          }
+          if (keys.includes('genre') && editCategory) {
+            editCategory.value = targetHist.genre || '소설';
+            appliedNames.push('카테고리');
+          }
+          if (keys.includes('totalPoint') && editTotal) {
+            editTotal.value = targetHist.totalPoint || 300;
+            appliedNames.push('페이지');
+          }
+          if (keys.includes('description') && editDesc) {
+            editDesc.value = targetHist.description || '';
+            appliedNames.push('소개글');
+          }
+        } else {
+          // 구 버전 기록이거나 changedKeys가 없으면 스냅샷 값으로 갱신
+          if (editCover && targetHist.cover !== undefined) { editCover.value = targetHist.cover || ''; updateCoverPreview(); }
+          if (editCategory && targetHist.genre) editCategory.value = targetHist.genre;
+          if (editTotal && targetHist.totalPoint) editTotal.value = targetHist.totalPoint;
+          if (editDesc && targetHist.description !== undefined) editDesc.value = targetHist.description;
+          appliedNames.push(targetHist.changeSummary || '수정 항목');
+        }
+
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        toast(`[${appliedNames.join(', ')}] 수정된 항목만 입력 필드에 바로 적용되었습니다.`);
+      };
+
+      // 히스토리 항목 클릭 시 수정된 항목만 선택 적용
+      document.querySelectorAll('.hist-item-row').forEach(row => {
+        row.onclick = () => {
+          const histId = row.dataset.histid;
+          const targetHist = (db.bookHistory || []).find(h => h.id === histId);
+          if (!targetHist) return;
+
+          applyModifiedFieldsToForm(targetHist);
+
+          document.querySelectorAll('.hist-item-row').forEach(r => {
+            r.style.borderColor = 'var(--line-subtle)';
+            r.style.boxShadow = 'none';
+          });
+          row.style.borderColor = 'var(--accent)';
+          row.style.boxShadow = '0 0 0 1px var(--accent)';
+        };
+      });
+
+      // 복구 버튼
+      document.querySelectorAll('.restore-hist-btn').forEach(btn => {
+        btn.onclick = (e) => {
+          e.stopPropagation();
+          const histId = btn.dataset.histid;
+          const targetHist = (db.bookHistory || []).find(h => h.id === histId);
+          if (targetHist && confirm(`이 히스토리 버전의 수정 항목만 폼 입력란에 복구하여 적용하시겠습니까?`)) {
+            applyModifiedFieldsToForm(targetHist);
+          }
+        };
+      });
+
+      // 신고 버튼 🚨
+      document.querySelectorAll('.report-hist-btn').forEach(btn => {
+        btn.onclick = (e) => {
+          e.stopPropagation();
+          const histId = btn.dataset.histid;
+          const targetHist = (db.bookHistory || []).find(h => h.id === histId);
+          if (targetHist && confirm(`이 수정 내역(작성자: ${targetHist.editorName || '나'}, ${targetHist.editedAt})을 부적절한 정보로 신고하시겠습니까?`)) {
+            toast(`🚨 해당 수정 내역이 신고 접수되었습니다. 관리자 검토 후 조치됩니다.`);
+          }
+        };
+      });
+
+      // 히스토리 삭제 버튼 🗑️ (관리자 전용)
+      document.querySelectorAll('.del-hist-btn').forEach(btn => {
+        btn.onclick = (e) => {
+          e.stopPropagation();
+          const histId = btn.dataset.histid;
+          const targetHist = (db.bookHistory || []).find(h => h.id === histId);
+          if (targetHist && confirm(`이 수정 히스토리 기록(${targetHist.changeSummary || '수정 항목'}, ${targetHist.editedAt})을 관리자 권한으로 완전히 삭제하시겠습니까?`)) {
+            db.bookHistory = (db.bookHistory || []).filter(h => h.id !== histId);
+            saveDB();
+            toast(`🗑️ 해당 수정 히스토리가 완전히 삭제되었습니다.`);
+            render();
+          }
+        };
+      });
+
+      const editSubmitBtn = document.getElementById('edit-submit-btn');
+      if (editSubmitBtn) {
+        editSubmitBtn.onclick = () => {
+          const coverUrl = document.getElementById('edit-cover')?.value.trim() || null;
+          const category = document.getElementById('edit-category')?.value || '소설';
+          const totalVal = document.getElementById('edit-total')?.value;
+          const desc = document.getElementById('edit-desc')?.value.trim();
+
+          const changedNames = [];
+          const changedKeys = [];
+
+          if ((c.cover || '') !== (coverUrl || '')) { changedNames.push('표지'); changedKeys.push('cover'); }
+          if ((c.genre || '') !== category) { changedNames.push('카테고리'); changedKeys.push('genre'); }
+          if ((c.totalPoint || 300) !== (totalVal ? parseInt(totalVal, 10) : 300)) { changedNames.push('페이지'); changedKeys.push('totalPoint'); }
+          if ((c.description || '') !== desc) { changedNames.push('소개글'); changedKeys.push('description'); }
+
+          const changeSummary = changedNames.length > 0 ? changedNames.join(', ') : '정보 수정';
+
+          c.cover = coverUrl;
+          c.genre = category;
+          c.totalPoint = totalVal ? parseInt(totalVal, 10) : (c.totalPoint || 300);
+          c.description = desc || '';
+
+          const snapshot = {
+            id: uid('hist'),
+            contentId: c.id,
+            title: c.title || '',
+            creator: c.creator || '',
+            publisher: c.publisher || '',
+            cover: c.cover || null,
+            genre: c.genre || '소설',
+            totalPoint: c.totalPoint || 300,
+            description: c.description || '',
+            changedKeys: changedKeys,
+            changeSummary: changeSummary,
+            editorName: '나',
+            editedAt: new Date().toLocaleString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
+          };
+
+          if (!db.bookHistory) db.bookHistory = [];
+          db.bookHistory.unshift(snapshot);
+
+          saveDB();
+          toast('책 정보가 수정되고 이력이 저장되었습니다.');
+          popOverlay();
+        };
+      }
+    }
+  }
 }
 
 /* ---------- Global Tab Navigation Click Handler ---------- */
