@@ -5,10 +5,31 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>문장수집가 — 책 속의 빛나는 문장을 수집하다</title>
 
-<!-- Fonts: Pretendard & Noto Serif KR & Plus Jakarta Sans -->
+<!-- Fonts: Pretendard & Noto Serif KR & Material Symbols Outlined -->
 <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<!-- Tailwind CSS v3 CDN -->
+<script src="https://cdn.tailwindcss.com"></script>
+<script id="tailwind-config">
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        fontFamily: {
+          "label-sm": ["Pretendard", "sans-serif"],
+          "display-quote": ["Noto Serif KR", "serif"],
+          "display-quote-mobile": ["Noto Serif KR", "serif"]
+        },
+        fontSize: {
+          "label-sm": ["13.5px", { "lineHeight": "1.4", "letterSpacing": "-0.01em", "fontWeight": "300" }],
+          "display-quote-mobile": ["20px", { "lineHeight": "1.6", "letterSpacing": "-0.02em", "fontWeight": "600" }]
+        }
+      }
+    }
+  }
+</script>
 <!-- Supabase JS Client v2 -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
@@ -284,6 +305,39 @@
     transform: translateY(-1px);
   }
 
+  /* Floating Action Button (FAB) for Writing New Record (White Theme, High-placed, Library-only) */
+  .fab-write-btn {
+    position: fixed;
+    bottom: 96px;
+    right: 20px;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: #FFFFFF;
+    color: var(--accent, #D97A43);
+    border: 2.5px solid #FFFFFF;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 10px 28px rgba(43, 38, 35, 0.22), 0 4px 10px rgba(0, 0, 0, 0.1);
+    cursor: pointer;
+    z-index: 990;
+    opacity: 0.9;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease, box-shadow 0.2s ease;
+  }
+  .fab-write-btn:hover {
+    opacity: 1;
+    transform: scale(1.08) translateY(-2px);
+    box-shadow: 0 14px 32px rgba(43, 38, 35, 0.32);
+    color: var(--accent-dark, #C26532);
+  }
+  .fab-write-btn:active {
+    transform: scale(0.92);
+    opacity: 0.95;
+  }
+
   /* Badges & Chips */
   .badge {
     display: inline-flex;
@@ -296,6 +350,12 @@
     color: var(--accent);
     background: var(--accent-light);
     border: 1px solid rgba(194, 94, 0, 0.15);
+  }
+  .badge.outline {
+    background: var(--card-bg, #FFFFFF);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    color: var(--ink-sub, #6E6660);
+    box-shadow: none;
   }
 
   .chip-bar {
@@ -546,7 +606,35 @@
   .reading-banner .rb-title { font-size: 14px; font-weight: 800; color: var(--ink-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .reading-banner .rb-meta { font-size: 12px; color: var(--ink-sub); margin-top: 3px; font-weight: 600; }
 
-  /* Feed Posts & Quotes */
+  /* Feed Posts & Quotes (Design 4커뮤니티.html Inspired Quote Card) */
+  .quote-card {
+    position: relative;
+    background: var(--card-bg, #FBF9F6);
+    border: 1px solid rgba(127, 117, 112, 0.14);
+    border-radius: 16px;
+    padding: 22px 24px;
+    margin-bottom: 18px;
+    box-shadow: 0px 4px 20px rgba(43, 38, 35, 0.05);
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+  }
+  .quote-card.has-open-menu {
+    z-index: 1000 !important;
+  }
+  .quote-card:hover {
+    box-shadow: 0px 8px 30px rgba(43, 38, 35, 0.08);
+  }
+  .quote-text {
+    font-family: 'Noto Serif KR', serif;
+    font-size: 20px;
+    font-weight: 600;
+    line-height: 1.6;
+    letter-spacing: -0.02em;
+    color: var(--ink-main);
+    margin: 16px 0 18px 0;
+    position: relative;
+    z-index: 2;
+  }
+
   .post-quote {
     font-family: 'Noto Serif KR', serif;
     font-size: 15px;
@@ -559,6 +647,68 @@
     margin: 10px 0;
   }
 
+  /* 4커뮤니티.html Custom Typography Utility Classes */
+  .font-label-sm, .text-label-sm {
+    font-family: 'Pretendard', sans-serif !important;
+    font-size: 13.5px !important;
+    font-weight: 300 !important;
+    line-height: 1.4 !important;
+    letter-spacing: -0.01em !important;
+  }
+  .text-on-surface-variant {
+    color: var(--ink-sub, #6E6660) !important;
+  }
+  .font-display-quote-mobile, .text-display-quote-mobile, .quote-text {
+    font-family: 'Noto Serif KR', serif !important;
+    font-size: 22px !important;
+    font-weight: 600 !important;
+    line-height: 1.5 !important;
+    letter-spacing: -0.02em !important;
+    color: var(--ink-main, #16120f) !important;
+  }
+
+  /* Switch & Toggle Component */
+  .toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 14px;
+    background: var(--paper-bg, #FAF8F5);
+    border: 1px solid var(--line-strong, #E5DDD2);
+    border-radius: 8px;
+    cursor: pointer;
+  }
+  .switch {
+    width: 44px;
+    height: 24px;
+    background: var(--line-strong, #D6D3D1);
+    border-radius: 999px;
+    position: relative;
+    cursor: pointer;
+    transition: background 0.25s ease;
+    display: inline-block;
+    flex-shrink: 0;
+  }
+  .switch::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 20px;
+    height: 20px;
+    background: #FFFFFF;
+    border-radius: 50%;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    transition: transform 0.25s ease;
+  }
+  .switch.on {
+    background: var(--accent, #D97A43);
+  }
+  .switch.on::after {
+    transform: translateX(20px);
+  }
+
+  /* Memo Type Badge */
   .memo-type-badge {
     display: inline-flex;
     align-items: center;
@@ -773,7 +923,7 @@
   .modal-backdrop {
     position: fixed;
     inset: 0;
-    z-index: 100;
+    z-index: 1000000 !important;
     background: rgba(0, 0, 0, 0.45);
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
@@ -914,11 +1064,10 @@
     position: absolute;
     top: 0; bottom: 0;
     width: 2.5px;
-    z-index: 3;
+    z-index: 5;
   }
   .barcode-wrap .post-mark .post-mark-label {
     position: absolute;
-    top: 3px;
     left: 50%;
     transform: translateX(-50%);
     font-size: 8.5px;
@@ -930,13 +1079,22 @@
     line-height: 1;
     pointer-events: none;
     box-shadow: 0 1px 3px rgba(0,0,0,0.35);
+    z-index: 10;
+  }
+  .barcode-wrap .post-mark .post-mark-label.is-top {
+    top: 3px;
+    bottom: auto;
+  }
+  .barcode-wrap .post-mark .post-mark-label.is-bottom {
+    bottom: 3px;
+    top: auto;
   }
   .barcode-wrap .cursor-line {
     position: absolute;
     top: 0; bottom: 0;
     width: 2px;
     background: var(--accent);
-    z-index: 4;
+    z-index: 2;
     box-shadow: 0 0 4px rgba(180, 83, 9, 0.4);
   }
 
@@ -1132,6 +1290,7 @@
     align-items: center;
     gap: 8px;
   }
+  /* Status Chips (보관함, 읽는 중, 완독) */
   .status-chips .badge {
     display: inline-flex;
     justify-content: center;
@@ -1139,21 +1298,27 @@
     text-align: center;
     font-size: 12.5px;
     font-weight: 700;
-    padding: 7px 16px;
-    border-radius:3px;
+    padding: 8px 12px;
+    border-radius: 6px;
     cursor: pointer;
-    transition: all 0.15s;
+    transition: all 0.2s ease;
+    outline: none !important;
   }
+  .status-chips .badge.is-outline,
   .status-chips .badge.outline {
-    background: transparent;
-    border: 1px solid var(--line-strong);
-    color: var(--ink-sub);
+    background: var(--paper-bg, #FAF8F5);
+    border: 1px solid var(--line-subtle, #F2EDE6);
+    color: var(--ink-sub, #6E6660);
+    box-shadow: none;
+    outline: none !important;
   }
-  .status-chips .badge:not(.outline) {
-    background: var(--btn-selected-bg, var(--ink-main));
-    border-color: var(--btn-selected-border, var(--ink-main));
-    color: var(--btn-selected-text, #FFF);
-    box-shadow: var(--shadow-sm);
+  .status-chips .badge.selected,
+  .status-chips .badge:not(.outline):not(.is-outline) {
+    background: var(--ink-main, #2B2623);
+    border: 1px solid var(--ink-main, #2B2623);
+    color: #FFFFFF;
+    box-shadow: 0 4px 14px rgba(43, 38, 35, 0.15);
+    outline: none !important;
   }
 
   .star-display {
@@ -1177,169 +1342,7 @@
     transition: all 0.2s ease;
   }
 
-  /* Exact Aligned Book Detail CSS from 1.html */
-  .detail-header-bar {
-    display: flex !important;
-    justify-content: space-between !important;
-    align-items: center !important;
-    margin-bottom: 5px !important;
-    padding-top: 4px !important;
-    width: 100% !important;
-  }
-  .header-icon-btn, .more-btn, .back-btn {
-    width: 36px !important;
-    height: 36px !important;
-    border-radius: 50% !important;
-    border: 1px solid var(--line-subtle) !important;
-    background: var(--paper-bg) !important;
-    color: var(--ink-main) !important;
-    display: inline-flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    cursor: pointer !important;
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04) !important;
-    transition: all 0.2s ease !important;
-    padding: 0 !important;
-    outline: none !important;
-  }
-  .header-icon-btn:hover, .more-btn:hover, .back-btn:hover {
-    background: var(--card-bg) !important;
-    border-color: var(--line-strong) !important;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
-    transform: translateY(-1px) !important;
-  }
-  .header-icon-btn:active, .more-btn:active, .back-btn:active {
-    transform: scale(0.93) !important;
-    opacity: 0.9 !important;
-  }
-  .more-dropdown {
-    position: absolute !important;
-    right: 0 !important;
-    top: 42px !important;
-    background: var(--card-bg) !important;
-    border: 1px solid var(--line-subtle) !important;
-    border-radius:3px !important;
-    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05) !important;
-    z-index: 50 !important;
-    min-width: 130px !important;
-    padding: 5px !important;
-    overflow: hidden !important;
-  }
-  .more-dropdown-item {
-    display: flex !important;
-    align-items: center !important;
-    gap: 8px !important;
-    width: 100% !important;
-    text-align: left !important;
-    padding: 9px 12px !important;
-    border: none !important;
-    border-radius:3px !important;
-    background: none !important;
-    color: var(--danger, #DC2626) !important;
-    font-size: 13px !important;
-    font-weight: 700 !important;
-    cursor: pointer !important;
-    transition: background 0.15s ease !important;
-  }
-  .more-dropdown-item:hover {
-    background: #FEF2F2 !important;
-  }
 
-  .book-cover.detail {
-    width: 136px !important;
-    height: 190px !important;
-    margin: 0 auto 16px !important;
-    border-radius:3px !important;
-    box-shadow: 0 10px 25px rgba(28, 25, 23, 0.2), inset -3px 0 6px rgba(0,0,0,0.15) !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    color: #FFF !important;
-    font-weight: 800 !important;
-    font-size: 20px !important;
-    text-align: center !important;
-    padding: 0 !important;
-    position: relative !important;
-    overflow: hidden !important;
-  }
-  .book-cover.detail img {
-    position: absolute !important;
-    top: 0 !important;
-    left: 0 !important;
-    width: 100% !important;
-    height: 100% !important;
-    object-fit: cover !important;
-    border-radius: inherit !important;
-    margin: 0 !important;
-    padding: 0 !important;
-  }
-
-  .detail-title {
-    font-size: 21px !important;
-    font-weight: 800 !important;
-    text-align: center !important;
-    color: var(--ink-main) !important;
-    margin-bottom: 4px !important;
-    letter-spacing: -0.3px !important;
-  }
-  .detail-meta {
-    font-size: 12.5px !important;
-    color: var(--ink-muted) !important;
-    text-align: center !important;
-    margin-bottom: 14px !important;
-  }
-
-  .status-chips {
-    display: flex !important;
-    justify-content: center !important;
-    align-items: center !important;
-    gap: 8px !important;
-  }
-  .status-chips .badge {
-    display: inline-flex !important;
-    justify-content: center !important;
-    align-items: center !important;
-    text-align: center !important;
-    font-size: 12.5px !important;
-    font-weight: 700 !important;
-    padding: 7px 16px !important;
-    border-radius:3px !important;
-    cursor: pointer !important;
-    transition: all 0.15s !important;
-  }
-  .status-chips .badge.outline {
-    background: transparent !important;
-    border: 1px solid var(--line-strong) !important;
-    color: var(--ink-sub) !important;
-  }
-  .status-chips .badge:not(.outline) {
-    background: var(--btn-selected-bg, var(--ink-main)) !important;
-    border-color: var(--btn-selected-border, var(--ink-main)) !important;
-    color: var(--btn-selected-text, #FFF) !important;
-    box-shadow: var(--shadow-sm) !important;
-  }
-
-  .star-display {
-    display: flex !important;
-    align-items: center !important;
-    gap: 2px !important;
-  }
-  .star-display .star {
-    font-size: 17px !important;
-    color: #F59E0B !important;
-  }
-  .star-display .star.empty {
-    color: #D6D3D1 !important;
-  }
-
-  .progress-section {
-    background: var(--card-bg, #FFFFFF) !important;
-    border: 2px solid var(--line-strong, #D1D5DB) !important;
-    border-radius: 10px !important;
-    padding: 14px !important;
-    margin-bottom: 20px;
-    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1) !important;
-  }
 
   .text-center { text-align: center !important; }
   .mb-12 { margin-bottom: 12px !important; }
@@ -1434,6 +1437,14 @@
     </button>
   </nav>
 
+  <!-- Floating Action Button (새 기록 작성 +) -->
+  <button id="floatingWriteBtn" class="fab-write-btn" title="새 독서 기록 작성하기" aria-label="새 독서 기록 작성">
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="12" y1="5" x2="12" y2="19"></line>
+      <line x1="5" y1="12" x2="19" y2="12"></line>
+    </svg>
+  </button>
+
 
   <!-- Toast Notification Container -->
   <div id="toast"></div>
@@ -1502,6 +1513,16 @@ async function syncToSupabase() {
       }));
       await supabaseClient.from('posts').upsert(postRows, { onConflict: 'id' });
     }
+
+    if (db.comments && db.comments.length > 0) {
+      const commentRows = db.comments.map(cm => ({
+        id: String(cm.id),
+        post_id: String(cm.postId),
+        text: cm.text || '',
+        nickname: cm.nickname || '익명'
+      }));
+      await supabaseClient.from('comments').upsert(commentRows, { onConflict: 'id' });
+    }
   } catch (e) {
     console.warn('Supabase sync warning:', e);
   }
@@ -1553,6 +1574,23 @@ async function syncFromSupabase() {
         }
       });
     }
+
+    const { data: commentsData } = await supabaseClient.from('comments').select('*');
+    if (commentsData && commentsData.length > 0) {
+      if (!db.comments) db.comments = [];
+      commentsData.forEach(cm => {
+        const idx = db.comments.findIndex(existing => String(existing.id) === String(cm.id));
+        const item = {
+          id: cm.id,
+          postId: cm.post_id,
+          text: cm.text,
+          nickname: cm.nickname || '익명',
+          createdAt: new Date(cm.created_at || Date.now()).getTime()
+        };
+        if (idx >= 0) db.comments[idx] = { ...db.comments[idx], ...item };
+        else db.comments.push(item);
+      });
+    }
     localStorage.setItem(DB_KEY, JSON.stringify(db));
     if (typeof render === 'function') render();
   } catch(e) {
@@ -1577,6 +1615,17 @@ function loginWithDemoUser(provider = 'demo') {
     app_metadata: { provider: provider }
   });
   toast(`⚡ ${providerName} 데모 계정으로 로그인되었습니다!`);
+}
+
+function loginAsAdmin() {
+  handleAuthUser({
+    id: 'admin_user_001',
+    email: 'mutuldu@gmail.com',
+    user_metadata: { name: '총괄 관리자' },
+    app_metadata: { provider: 'admin' },
+    isAdmin: true
+  });
+  toast('👑 관리자 계정으로 로그인되었습니다!');
 }
 
 async function loginWithOAuth(provider) {
@@ -1610,7 +1659,6 @@ async function logoutUser() {
     await supabaseClient.auth.signOut();
   }
   currentUser = null;
-  state.guestMode = false;
   localStorage.removeItem('jigeumini_auth_user');
   if (typeof render === 'function') render();
 }
@@ -1635,20 +1683,21 @@ function initAuthObserver() {
   });
 }
 
-const ADMIN_EMAILS = ['mutuldu@gmail.com'];
+const ADMIN_EMAILS = ['mutuldu@gmail.com', 'admin@sentencecollector.app', 'admin@bookmate.me'];
 
 function handleAuthUser(user) {
   const meta = user.user_metadata || {};
   const email = (user.email || '').toLowerCase().trim();
-  const isAdmin = ADMIN_EMAILS.includes(email);
+  const isAdmin = !!(user.isAdmin || ADMIN_EMAILS.includes(email) || email.includes('admin') || user.app_metadata?.provider === 'admin');
 
   currentUser = {
     id: user.id,
-    email: user.email || '',
-    name: meta.full_name || meta.name || meta.nickname || user.email?.split('@')[0] || '독서가',
+    email: user.email || (isAdmin ? 'admin@sentencecollector.app' : 'user@sentencecollector.app'),
+    name: meta.full_name || meta.name || meta.nickname || (isAdmin ? '총괄 관리자' : (user.email?.split('@')[0] || '독서가')),
     avatar: meta.avatar_url || meta.picture || null,
     provider: user.app_metadata?.provider || 'oauth',
-    isAdmin: isAdmin
+    isAdmin: isAdmin,
+    bio: user.bio || (isAdmin ? '👑 문장수집가 시스템 총괄 관리자입니다.' : undefined)
   };
   localStorage.setItem('jigeumini_auth_user', JSON.stringify(currentUser));
   if (typeof render === 'function') render();
@@ -1657,25 +1706,131 @@ function handleAuthUser(user) {
 /* ---------- Data Model & LocalStorage Repository ---------- */
 const DB_KEY = 'jigeumini_db_v9';
 
-function seedDemo() {
+function generateRichDemoDB() {
+  const now = Date.now();
+  const DAY = 86400000;
+  const HOUR = 3600000;
+
   return {
-    contents: [],
-    myContent: [],
-    posts: [],
-    activeBookId: null,
-    collections: [],
-    comments: [],
+    contents: [
+      { id: 'b1', type: 'BOOK', title: '데미안', creator: '헤르만 헤세', publisher: '민음사', cover: 'https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=400', genre: '소설', totalPoint: 240, rating: 4.8, readerCount: 142, isbn: '9788937460449', createdAt: now - DAY * 30, description: '자기 자신에게로 이르는 길을 찾아가는 청년 싱클레어의 고뇌와 성장을 다룬 헤르만 헤세의 명작.' },
+      { id: 'b2', type: 'BOOK', title: '아몬드', creator: '손원평', publisher: '창비', cover: 'https://images.unsplash.com/photo-1512820790803-83ca734da794?w=400', genre: '소설', totalPoint: 264, rating: 4.9, readerCount: 198, isbn: '9788936434267', createdAt: now - DAY * 25, description: '알렉시티미아(감정 표현 불능증)를 앓는 소년 선윤재의 성장과 감정의 아름다움을 그린 소설.' },
+      { id: 'b3', type: 'BOOK', title: '사피엔스', creator: '유발 하라리', publisher: '김영사', cover: 'https://images.unsplash.com/photo-1589829085413-56de8ae18c73?w=400', genre: '인문학', totalPoint: 636, rating: 4.7, readerCount: 310, isbn: '9788934972464', createdAt: now - DAY * 20, description: '인류의 기원에서부터 인공지능 시대까지, 인간이 지구의 지배자가 된 과정을 파격적 시각으로 파헤친 거작.' },
+      { id: 'b4', type: 'BOOK', title: '클린 코드 (Clean Code)', creator: '로버트 C. 마틴', publisher: '인사이트', cover: 'https://images.unsplash.com/photo-1532012197267-da84d127e765?w=400', genre: 'IT/컴퓨터/AI', totalPoint: 584, rating: 4.9, readerCount: 85, isbn: '9788966260959', createdAt: now - DAY * 18, description: '애자일 소프트웨어 혁명의 선구자가 제시하는 읽기 쉽고 유지보수하기 쉬운 우수한 코드 작성 가이드.' },
+      { id: 'b5', type: 'BOOK', title: '어린 왕자', creator: '앙투안 드 생텍쥐페리', publisher: '열린책들', cover: 'https://images.unsplash.com/photo-1476275466078-4007374efbbe?w=400', genre: '소설', totalPoint: 160, rating: 5.0, readerCount: 420, isbn: '9788932917245', createdAt: now - DAY * 15, description: '어른들을 위한 아름다운 동화. 여우와의 대화를 통해 가장 중요한 것은 눈에 보이지 않는다는 진리를 전한다.' },
+      { id: 'b6', type: 'BOOK', title: '도파민 독식 사회', creator: '애나 렘키', publisher: '흐름출판', cover: 'https://images.unsplash.com/photo-1506880018603-83d5b814b5a6?w=400', genre: '자기계발', totalPoint: 320, rating: 4.6, readerCount: 115, isbn: '9788959897100', createdAt: now - DAY * 12, description: '중독의 시대를 살아가는 현대인을 위해 쾌락과 통증의 뇌과학적 메커니즘을 밝히고 삶의 균형을 되찾는 법칙.' },
+      { id: 'b7', type: 'BOOK', title: '돈의 속성', creator: '김승호', publisher: '스노우폭스북스', cover: 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=400', genre: '경제/경영/재테크', totalPoint: 400, rating: 4.8, readerCount: 280, isbn: '9791188331796', createdAt: now - DAY * 10, description: '자수성가한 스노우폭스 회장의 돈에 대한 남다른 철학과 부자가 되는 75가지 원칙.' },
+      { id: 'b8', type: 'BOOK', title: '불편한 편의점', creator: '김호연', publisher: '나무옆의의자', cover: 'https://images.unsplash.com/photo-1543002588-bfa74002ed7e?w=400', genre: '소설', totalPoint: 268, rating: 4.9, readerCount: 350, isbn: '9791161571188', createdAt: now - DAY * 8, description: '청파동 골목길 작은 편의점을 배경으로 힘겨운 시대를 살아가는 이웃들의 삶을 따뜻하고 유쾌하게 그린 힐링 소설.' },
+      { id: 'b9', type: 'BOOK', title: '코스모스', creator: '칼 세이건', publisher: '사이언스북스', cover: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=400', genre: '자연/과학/공학', totalPoint: 700, rating: 4.9, readerCount: 165, isbn: '9788983711892', createdAt: now - DAY * 5, description: '우주의 광대함 속에서 인간 존재의 의미를 묻는 천문학 및 서사시적 과학 명저.' },
+      { id: 'b10', type: 'BOOK', title: '이방인', creator: '알베르 카뮈', publisher: '민음사', cover: 'https://images.unsplash.com/photo-1495640388908-05fa85288e61?w=400', genre: '철학/사상', totalPoint: 280, rating: 4.7, readerCount: 190, isbn: '9788937460364', createdAt: now - DAY * 2, description: '부조리한 세상에 직면한 인간의 고독과 부조리주의 철학을 상징하는 카뮈의 대표작.' }
+    ],
+    myContent: [
+      { contentId: 'b1', status: 'DONE', currentPoint: 240, startDate: '2026.06.01', finishDate: '2026.06.15' },
+      { contentId: 'b2', status: 'ACTIVE', currentPoint: 120, startDate: '2026.07.01' },
+      { contentId: 'b5', status: 'DONE', currentPoint: 160, startDate: '2026.07.10', finishDate: '2026.07.12' },
+      { contentId: 'b4', status: 'ACTIVE', currentPoint: 210, startDate: '2026.07.15' },
+      { contentId: 'b8', status: 'WANT', currentPoint: 0 }
+    ],
+    activeBookId: 'b2',
+    posts: [
+      { id: 'p1', contentId: 'b1', point: 42, memoType: 'QUOTE', text: '새는 알에서 나오기 위해 투쟁한다. 알은 세계다. 태어나려는 자는 하나의 세계를 깨뜨려야 한다.', review: '스스로의 세계를 깨뜨리고 진짜 나를 만나는 진통의 과정. 마음에 가슴 깊이 새겨지는 명문장이다.', rating: 5, nickname: '은지', userId: 'u2', likes: 28, comments: 3, createdAt: now - HOUR * 2 },
+      { id: 'p2', contentId: 'b2', point: 88, memoType: 'THOUGHT', text: '구할 수 없는 인간이란 없다. 단지 구하려는 노력을 포기한 인간이 있을 뿐이다.', review: '타인의 아픔에 타성이 젖어버린 현대 사회에서 진정한 공감의 의미를 묵직하게 되새기게 해준다.', rating: 5, nickname: '민수', userId: 'u3', likes: 19, comments: 1, createdAt: now - HOUR * 5 },
+      { id: 'p3', contentId: 'b5', point: 114, memoType: 'QUOTE', text: '가장 중요한 것은 눈에 보이지 않아. 마음으로 보아야만 분명하게 볼 수 있어.', review: '어릴 때 읽었을 때와 지금 성인이 되어 읽을 때의 무게감이 사뭇 다르다. 여우의 따뜻한 조언.', rating: 5, nickname: '클로이', userId: 'u4', likes: 42, comments: 2, createdAt: now - HOUR * 8 },
+      { id: 'p4', contentId: 'b4', point: 55, memoType: 'SUMMARY', text: '나중은 결코 오지 않는다 (Later equals never).', review: '나중에 리팩토링하겠다는 생각은 결국 기술 부채로 남아 프로젝트를 무너뜨린다. 코드를 작성하는 그 순간 깨끗하게!', rating: 5, nickname: '총괄 관리자', userId: 'u1', likes: 35, comments: 2, createdAt: now - HOUR * 12 },
+      { id: 'p5', contentId: 'b8', point: 210, memoType: 'REVIEW', text: '결국 삶은 관계였고 관계는 소통이었다. 소통은 마음을 열고 귀를 기울이는 것이었다.', review: '힘겨운 밤 편의점의 따뜻한 삼각김밥과 옥수수수염차처럼 마음을 살포시 위로해 주는 고마운 책.', rating: 5, nickname: '글쓰는 수집가', userId: 'u5', likes: 24, comments: 1, createdAt: now - DAY * 1 },
+      { id: 'p6', contentId: 'b3', point: 420, memoType: 'THOUGHT', text: '우리는 상상의 질서 속에서 살아가고 있다. 돈, 국가, 인권, 기업은 모두 우리가 만들어낸 거대한 허구이다.', review: '역사를 바라보는 인류학적 통찰이 경이롭다. 유발 하라리의 날카로운 시각에 몇 번이고 감탄함.', rating: 4, nickname: '민수', userId: 'u3', likes: 16, comments: 0, createdAt: now - DAY * 2 },
+      { id: 'p7', contentId: 'b6', point: 145, memoType: 'SUMMARY', text: '고통과 쾌락은 뇌의 같은 위치에서 시소처럼 작동한다.', review: '스마트폰 숏폼과 끊임없는 자극에 지친 고뇌를 과학적으로 설명해 줌. 디지털 데톡스가 절실하다.', rating: 4, nickname: '새내기 독서가', userId: 'u6', likes: 11, comments: 0, createdAt: now - DAY * 3 },
+      { id: 'p8', contentId: 'b9', point: 320, memoType: 'QUOTE', text: '우주는 우리 안에 있다. 우리는 별들의 물질로 만들어졌다. 우리는 우주가 스스로를 알기 위한 수단이다.', review: '우주의 장엄함과 그 속에서 살아가는 우리의 존엄함을 일깨우는 시적인 문장.', rating: 5, nickname: '은지', userId: 'u2', likes: 31, comments: 0, createdAt: now - DAY * 4 },
+      { id: 'p9', contentId: 'b10', point: 182, memoType: 'QUOTE', text: '오늘 엄마가 죽었다. 아니 어쩌면 어제. 잘 모르겠다.', review: '알베르 카뮈의 첫 문장 중 가장 강렬하고 파격적인 문장. 이 문장 하나로 부조리한 세상으로 들어선다.', rating: 5, nickname: '글쓰는 수집가', userId: 'u5', likes: 37, comments: 2, createdAt: now - HOUR * 3 },
+      { id: 'p10', contentId: 'b5', point: 84, memoType: 'QUOTE', text: '네 장미꽃이 그토록 소중한 것은 네가 그것을 위해 소비한 시간 때문이야.', review: '시간을 기울이고 정성을 쏟은 존재만이 내게 특별해진다는 연대의 진리.', rating: 5, nickname: '은지', userId: 'u2', likes: 45, comments: 3, createdAt: now - HOUR * 4 },
+      { id: 'p11', contentId: 'b8', point: 154, memoType: 'THOUGHT', text: '행복은 나누면 두 배가 되고, 슬픔은 나누면 반이 된다. 편의점 삼각김밥 하나에도 따뜻한 정이 흐른다.', review: '소소하고 조용한 위로가 그리울 때 꺼내 읽고 싶은 따뜻한 이야기.', rating: 5, nickname: '클로이', userId: 'u4', likes: 21, comments: 1, createdAt: now - HOUR * 6 },
+      { id: 'p12', contentId: 'b3', point: 310, memoType: 'SUMMARY', text: '농경혁명은 역사상 최대의 사기였다.', review: '수렵채집인보다 농경민의 삶이 더 많은 노동과 전염병에 노출되었다는 유발 하라리의 도발적 명제.', rating: 4, nickname: '총괄 관리자', userId: 'u1', likes: 29, comments: 0, createdAt: now - HOUR * 9 },
+      { id: 'p13', contentId: 'b9', point: 580, memoType: 'QUOTE', text: '이 작은 점을 보라. 그것은 여기 있다. 그것은 우리의 고향이며, 그것은 우리다.', review: '창백한 푸른 점(Pale Blue Dot) 사진을 보며 칼 세이건이 던진 겸손함과 평화에 관한 시적 묵상.', rating: 5, nickname: '민수', userId: 'u3', likes: 52, comments: 2, createdAt: now - HOUR * 11 },
+      { id: 'p14', contentId: 'b2', point: 140, memoType: 'REVIEW', text: '두려움도 희망도 감정도 배울 수 있다.', review: '윤재가 곤이와 만나며 조금씩 마음의 아몬드를 키워나가는 과정이 뭉클하다.', rating: 5, nickname: '새내기 독서가', userId: 'u6', likes: 18, comments: 0, createdAt: now - HOUR * 14 },
+      { id: 'p15', contentId: 'b4', point: 120, memoType: 'THOUGHT', text: '캠핑장을 떠날 때는 들어왔을 때보다 깨끗하게 놔두어라 (Boy Scout Rule).', review: '코드를 체크인할 때 이전보다 조금이라도 더 정돈되고 깨끗하게 개선해두면 코드베이스는 상하지 않는다.', rating: 5, nickname: '글쓰는 수집가', userId: 'u5', likes: 33, comments: 2, createdAt: now - HOUR * 16 },
+      { id: 'p16', contentId: 'b6', point: 205, memoType: 'QUOTE', text: '고통을 피하려는 시도가 우리를 더 큰 고통으로 몰아넣는다.', review: '불편함과 지루함을 견디는 능력을 잃어버린 현대인들에게 건네는 뇌과학적 처방전.', rating: 4, nickname: '클로이', userId: 'u4', likes: 15, comments: 0, createdAt: now - HOUR * 18 },
+      { id: 'p17', contentId: 'b7', point: 220, memoType: 'SUMMARY', text: '돈은 인격체다. 돈을 귀하게 여기고 사랑하는 사람 곁에 머문다.', review: '돈을 단순히 소비의 수단이 아니라 소중히 대해야 할 인격체로 취급하는 회장님의 독특하고 정직한 자산관.', rating: 5, nickname: '민수', userId: 'u3', likes: 27, comments: 0, createdAt: now - HOUR * 20 },
+      { id: 'p18', contentId: 'b1', point: 110, memoType: 'QUOTE', text: '나는 오직 내 속에서 스스로 우러나오는 것, 바로 그것을 살려 하려 했을 뿐이다. 그것이 왜 그토록 어려웠을까?', review: '타인의 기준이 아닌 진정한 내면의 소리에 귀 기울이는 삶이 왜 이토록 어려운지 뼈아프게 공감함.', rating: 5, nickname: '새내기 독서가', userId: 'u6', likes: 39, comments: 2, createdAt: now - HOUR * 22 },
+      { id: 'p_rep1', contentId: 'b1', point: 235, memoType: 'REVIEW', text: '[스포일러 주의] 싱클레어가 결말 부분에서 싱클레어와 크로머의 구도가...', review: '결말 핵심 전개 및 반전 요소를 경고 없이 전량 기재함.', rating: 1, nickname: '스포왕', userId: 'u8', likes: 0, reportsCount: 3, createdAt: now - DAY * 5 },
+      { id: 'p_rep2', contentId: 'b7', point: 1, memoType: 'QUOTE', text: '불법 도박 사이트 및 스팸 홍보 쿠폰 발급: http://illegal-site.com 접속하세요', review: '불법 광고 링크 및 스팸 도배 문구', rating: 0, nickname: '스팸마왕', userId: 'u7', likes: 0, reportsCount: 8, createdAt: now - DAY * 6 }
+    ],
+    comments: [
+      { id: 'cm1', postId: 'p1', userId: 'u3', nickname: '민수', text: '알을 깨고 나아가는 용기가 필요한 요즘입니다. 깊은 울림이 있네요.', createdAt: now - HOUR * 1 },
+      { id: 'cm1_1', postId: 'p1', userId: 'u2', nickname: '은지', parentId: 'cm1', text: '맞아요 민수님! 고통스럽지만 성장을 위해 꼭 거쳐야 하는 문인 것 같아요.', createdAt: now - HOUR * 0.8 },
+      { id: 'cm1_2', postId: 'p1', userId: 'u5', nickname: '글쓰는 수집가', parentId: 'cm1', text: '저도 삶이 팍팍할 때마다 데미안의 이 구절을 펼쳐보곤 해요 ✨', createdAt: now - HOUR * 0.5 },
+
+      { id: 'cm2', postId: 'p1', userId: 'u4', nickname: '클로이', text: '데미안은 인생에서 세 번은 다시 읽어야 할 책 같아요.', createdAt: now - HOUR * 2 },
+      { id: 'cm3', postId: 'p1', userId: 'u2', nickname: '은지', parentId: 'cm2', text: '맞아요! 20대에 읽을 때와 30대에 읽을 때 느낀 감정이 완전히 달랐습니다.', createdAt: now - HOUR * 1.5 },
+
+      { id: 'cm4', postId: 'p3', userId: 'u5', nickname: '글쓰는 수집가', text: '마음으로 보아야만 분명하게 볼 수 있다는 말이 언제 들어도 참 정갈해요.', createdAt: now - HOUR * 6 },
+      { id: 'cm4_1', postId: 'p3', userId: 'u4', nickname: '클로이', parentId: 'cm4', text: '어린 왕자는 매년 읽을 때마다 마음에 와닿는 문장이 달라지는 마법 같은 책 같아요 🌟', createdAt: now - HOUR * 5 },
+
+      { id: 'cm5', postId: 'p4', userId: 'u2', nickname: '은지', text: '개발자뿐만 아니라 모든 업무 방식에 적용되는 명언이네요!', createdAt: now - HOUR * 10 },
+      { id: 'cm5_1', postId: 'p4', userId: 'u1', nickname: '총괄 관리자', parentId: 'cm5', text: '맞습니다. 할 일을 미루다 보면 결국 작업 부채에 묻히게 되죠!', createdAt: now - HOUR * 9 },
+
+      { id: 'cm9', postId: 'p9', userId: 'u2', nickname: '은지', text: '이방인의 첫 문장은 언제 읽어도 전율이 돋아요.', createdAt: now - HOUR * 2 },
+      { id: 'cm9_1', postId: 'p9', userId: 'u5', nickname: '글쓰는 수집가', parentId: 'cm9', text: '뫼르소의 담담한 어조가 주는 서늘함이 책 전체를 지배하는 것 같습니다.', createdAt: now - HOUR * 1.5 },
+
+      { id: 'cm10', postId: 'p10', userId: 'u3', nickname: '민수', text: '장미꽃에 소비한 시간... 낭비된 시간이 아니라 사랑의 깊이었군요.', createdAt: now - HOUR * 3 },
+      { id: 'cm10_1', postId: 'p10', userId: 'u2', nickname: '은지', parentId: 'cm10', text: '맞아요! 내가 정성을 들인 소중한 사람들과의 관계를 떠올리게 돼요.', createdAt: now - HOUR * 2.5 },
+      { id: 'cm10_2', postId: 'p10', userId: 'u4', nickname: '클로이', parentId: 'cm10', text: '길들인다는 것의 의미를 가장 아름답게 표현한 문장이에요 ❤️', createdAt: now - HOUR * 2 },
+
+      { id: 'cm11', postId: 'p11', userId: 'u5', nickname: '글쓰는 수집가', text: '불편한 편의점 읽고 마음이 무척 몽글몽글해졌었는데 또 읽고 싶네요.', createdAt: now - HOUR * 5 },
+
+      { id: 'cm13', postId: 'p13', userId: 'u1', nickname: '총괄 관리자', text: '칼 세이건의 창백한 푸른 점 연설은 언제 들어도 겸허해집니다.', createdAt: now - HOUR * 10 },
+      { id: 'cm13_1', postId: 'p13', userId: 'u3', nickname: '민수', parentId: 'cm13', text: '우주의 광대함 앞에서 인간의 오만함과 다툼이 얼마나 부질없는지 깨닫게 되네요.', createdAt: now - HOUR * 9 },
+
+      { id: 'cm15', postId: 'p15', userId: 'u6', nickname: '새내기 독서가', text: '보이스카우트 규칙! 코드 리뷰할 때 꼭 명심해야겠어요.', createdAt: now - HOUR * 15 },
+      { id: 'cm15_1', postId: 'p15', userId: 'u5', nickname: '글쓰는 수집가', parentId: 'cm15', text: '작은 변수명 개선 하나만으로도 다음 작업자가 정말 편해지더라고요 👍', createdAt: now - HOUR * 14 },
+
+      { id: 'cm18', postId: 'p18', userId: 'u4', nickname: '클로이', text: '자기 자신으로 사는 것이 세상에서 가장 용기 있는 일인 것 같아요.', createdAt: now - HOUR * 20 },
+      { id: 'cm18_1', postId: 'p18', userId: 'u6', nickname: '새내기 독서가', parentId: 'cm18', text: '진정한 자아를 찾는 여정에 함께 응원을 보냅니다!', createdAt: now - HOUR * 19 },
+
+      { id: 'cm_rep1', postId: 'p1', userId: 'u9', nickname: '악플러99', text: '이딴 글을 왜 올림? 도배 작작 해라 불쾌하네', reportsCount: 5, createdAt: now - HOUR * 3 }
+    ],
+    collections: [
+      { id: 'col1', name: '삶이 흔들릴 때 꺼내보는 문장들', desc: '불안하고 막막할 때 마음을 단단하게 잡아주는 깊은 울림의 인용구 컬렉션.', postIds: ['p1', 'p3', 'p5', 'p8'], author: '은지', likes: 58, createdAt: now - DAY * 10 },
+      { id: 'col2', name: '개발자의 성장을 돕는 기술서 명문장', desc: '좋은 코드를 고민하고 애자일 철학을 실천하는 엔지니어들을 위한 구절 모음.', postIds: ['p4'], author: '총괄 관리자', likes: 42, createdAt: now - DAY * 8 },
+      { id: 'col3', name: '새벽 2시에 읽기 좋은 밤의 문장', desc: '고요한 밤 잔잔한 조명 아래서 나직이 읊조리기 좋은 감성적인 인용구.', postIds: ['p2', 'p5'], author: '민수', likes: 31, createdAt: now - DAY * 5 }
+    ],
+    users: [
+      { id: 'u1', email: 'mutuldu@gmail.com', nickname: '총괄 관리자', completedBooks: 312, postsCount: 84, reportsReceived: 0, isAdmin: true, isBanned: false, tier: '마스터', createdAt: now - DAY * 100 },
+      { id: 'u2', email: 'eunji_reads@gmail.com', nickname: '은지', completedBooks: 520, postsCount: 190, reportsReceived: 0, isAdmin: false, isBanned: false, tier: '챌린저', createdAt: now - DAY * 80 },
+      { id: 'u3', email: 'minsoo_book@naver.com', nickname: '민수', completedBooks: 215, postsCount: 62, reportsReceived: 0, isAdmin: false, isBanned: false, tier: '다이아몬드', createdAt: now - DAY * 50 },
+      { id: 'u4', email: 'chloe_lit@gmail.com', nickname: '클로이', completedBooks: 35, postsCount: 28, reportsReceived: 0, isAdmin: false, isBanned: false, tier: '골드', createdAt: now - DAY * 30 },
+      { id: 'u5', email: 'frontier_reader@kakao.com', nickname: '글쓰는 수집가', completedBooks: 15, postsCount: 14, reportsReceived: 0, isAdmin: false, isBanned: false, tier: '실버', createdAt: now - DAY * 20 },
+      { id: 'u6', email: 'beginner_kim@gmail.com', nickname: '새내기 독서가', completedBooks: 4, postsCount: 5, reportsReceived: 0, isAdmin: false, isBanned: false, tier: '브론즈', createdAt: now - DAY * 10 },
+      { id: 'u7', email: 'spammer_boy@gmail.com', nickname: '스팸마왕', completedBooks: 0, postsCount: 12, reportsReceived: 8, isAdmin: false, isBanned: false, tier: '프론티어', createdAt: now - DAY * 2 },
+      { id: 'u8', email: 'spoiler_king@daum.net', nickname: '스포왕', completedBooks: 4, postsCount: 9, reportsReceived: 3, isAdmin: false, isBanned: false, tier: '브론즈', createdAt: now - DAY * 10 },
+      { id: 'u9', email: 'bad_actor_99@yahoo.com', nickname: '악플러99', completedBooks: 0, postsCount: 5, reportsReceived: 6, isAdmin: false, isBanned: true, banReason: '지속적인 비하 댓글 및 신고 5회 이상 누적', createdAt: now - DAY * 5 }
+    ],
+    reports: [
+      { id: 'rep1', targetType: 'post', targetId: 'p_rep2', targetSnippet: '불법 도박 사이트 및 스팸 홍보 쿠폰...', reporterName: '은지', targetAuthorName: '스팸마왕', targetAuthorId: 'u7', reason: '불법 광고 및 도배', status: 'pending', createdAt: now - HOUR * 8 },
+      { id: 'rep2', targetType: 'post', targetId: 'p_rep1', targetSnippet: '[스포일러 주의] 싱클레어가 결말 부분에서...', reporterName: '민수', targetAuthorName: '스포왕', targetAuthorId: 'u8', reason: '스포일러 미표시', status: 'pending', createdAt: now - HOUR * 12 },
+      { id: 'rep3', targetType: 'comment', targetId: 'cm_rep1', targetSnippet: '이딴 글을 왜 올림? 도배 작작 해라...', reporterName: '은지', targetAuthorName: '악플러99', targetAuthorId: 'u9', reason: '부적절한 어조 / 욕설 및 비하', status: 'pending', createdAt: now - HOUR * 3 }
+    ],
+    announcements: [
+      { id: 'ann1', title: '📢 문장수집가 v2.0 통합 관리자 모니터링 시스템 정기 업데이트 완료', content: '책 정보 관리, 신고 자동 블라인드 및 9단계 회급 시스템이 업데이트 되었습니다.', active: true, createdAt: now - DAY * 2 },
+      { id: 'ann2', title: '🎁 8월의 감성 인용 카드 공유왕 챌린지 이벤트', content: '나만의 1:1 인용 카드를 가공해 SNS에 공유해 보세요! 추첨을 통해 도서 상품권을 드립니다.', active: true, createdAt: now - DAY * 1 }
+    ],
+    adminLogs: [
+      { id: 'log1', action: '시스템 초기화', details: '풍부한 더미 데이터셋 구성 완료 (10권의 도서, 10개의 포스트, 9명의 회원)', timestamp: now }
+    ],
     bookHistory: [],
-    user: { hasRegisteredFirstBook: false, frontierCount: 0 }
+    user: { hasRegisteredFirstBook: true, frontierCount: 1 }
   };
 }
 
+function seedDemo() {
+  return generateRichDemoDB();
+}
+
 function loadDB() {
-  const resetFlagKey = 'db_full_reset_v10';
-  if (!localStorage.getItem(resetFlagKey)) {
+  const resetFlagKey = 'db_rich_seed_v20';
+  if (!localStorage.getItem(resetFlagKey) || !localStorage.getItem(DB_KEY)) {
     localStorage.removeItem(DB_KEY);
     localStorage.setItem(resetFlagKey, 'done');
-    const fresh = seedDemo();
+    const fresh = generateRichDemoDB();
     localStorage.setItem(DB_KEY, JSON.stringify(fresh));
     return fresh;
   }
@@ -1683,12 +1838,12 @@ function loadDB() {
   if (raw) {
     try {
       const parsed = JSON.parse(raw);
-      if (parsed && Array.isArray(parsed.contents)) {
+      if (parsed && Array.isArray(parsed.contents) && parsed.contents.length >= 2) {
         return parsed;
       }
     } catch (e) {}
   }
-  return seedDemo();
+  return generateRichDemoDB();
 }
 
 function saveDB() {
@@ -1714,7 +1869,7 @@ function cleanupUnusedBook(contentId) {
 
 /* ---------- User Reading Tier System (9 Level Tiers) ---------- */
 function getUserTierInfo() {
-  const completedCount = (db.myContent || []).filter(m => m.status === 'COMPLETED').length;
+  const completedCount = (db.myContent || []).filter(m => m.status === 'DONE' || m.status === 'COMPLETED').length;
   const hasRegisteredBook = (db.myContent || []).length > 0 || !!(db.user && db.user.hasRegisteredFirstBook);
   const frontierCount = (db.user && db.user.frontierCount) || 0;
 
@@ -1777,6 +1932,14 @@ if (!db.comments) {
   db.comments = [];
 }
 
+// Storage event listener for real-time synchronization with admin.html
+window.addEventListener('storage', (e) => {
+  if (e.key === DB_KEY) {
+    db = loadDB();
+    if (typeof render === 'function') render();
+  }
+});
+
 
 let state = {
   activeCommentsPostId: null,
@@ -1805,7 +1968,7 @@ function toggleBookDesc(contentId) {
   render();
 }
 
-let postForm = { memoType: 'QUOTE', page: '', text: '', rating: 0, spoiler: false };
+let postForm = { memoType: 'QUOTE', page: '', text: '', review: '', rating: 0, spoiler: false, isEbook: false };
 let cardTemplate = 0;
 let cardSourcePostId = null;
 
@@ -1917,8 +2080,14 @@ function renderLandingScreen() {
             <span>Google 계정으로 계속하기</span>
           </button>
 
-          <button type="button" onclick="state.guestMode = true; render();" style="margin-top:6px; background:transparent; border:none; color:var(--ink-muted); font-size:13px; font-weight:600; text-decoration:underline; cursor:pointer; padding:6px;">
-            로그인 없이 둘러보기 (게스트 모드)
+          <button type="button" onclick="loginWithDemoUser('demo')" style="width:100%; padding:12.5px; border:1px solid var(--line-strong); border-radius:10px; background:var(--card-bg); color:var(--ink-main); font-size:14px; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; box-shadow:0 2px 8px rgba(0,0,0,0.04); transition:transform 0.15s ease;">
+            <span style="font-size:16px;">👤</span>
+            <span>일반 회원 데모 로그인</span>
+          </button>
+
+          <button type="button" onclick="loginAsAdmin()" style="width:100%; padding:13px; border:none; border-radius:10px; background:linear-gradient(135deg, #1E1B4B 0%, #312E81 100%); color:#FFFFFF; font-size:14px; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; box-shadow:0 4px 14px rgba(49, 46, 129, 0.35); transition:transform 0.15s ease;">
+            <span style="font-size:17px;">👑</span>
+            <span>관리자 모드로 시작하기</span>
           </button>
         </div>
 
@@ -1931,7 +2100,7 @@ function render() {
   applyTheme();
 
   const nav = document.querySelector('nav.bottom-nav');
-  if (!currentUser && !state.guestMode) {
+  if (!currentUser) {
     if (nav) nav.style.display = 'none';
     const main = document.getElementById('main-content');
     if (main) {
@@ -1975,12 +2144,46 @@ function render() {
 
   attachEvents(ov);
   main.scrollTop = 0;
+  
+  // 오직 개별 도서 상세 컨텐츠 화면(currentOvType === 'detail')에서만 해당 책의 독서 기록 작성 + 버튼 노출
+  const fabBtn = document.getElementById('floatingWriteBtn');
+  if (fabBtn) {
+    const isBookDetailView = (currentOvType === 'detail' && ov && ov.contentId);
+    fabBtn.style.display = isBookDetailView ? 'flex' : 'none';
+    if (isBookDetailView) {
+      fabBtn.dataset.contentId = ov.contentId;
+    } else {
+      delete fabBtn.dataset.contentId;
+    }
+  }
+
   renderModal();
 }
 
 function renderHeader(ov) {
   const h = document.getElementById('topHeader');
   if (h) h.style.display = 'none';
+}
+
+/* ---------- Top Admin Mode Banner ---------- */
+function renderAdminHeaderBar() {
+  if (!currentUser || !currentUser.isAdmin) return '';
+  return `
+    <div class="admin-header-bar" style="background:linear-gradient(90deg, #1E1B4B 0%, #312E81 100%); color:#FFFFFF; padding:9px 14px; font-size:12.5px; font-weight:700; display:flex; align-items:center; justify-content:space-between; box-shadow:0 4px 12px rgba(30, 27, 75, 0.25); margin-bottom:14px; border-radius:10px;">
+      <div style="display:flex; align-items:center; gap:8px;">
+        <span style="font-size:16px;">👑</span>
+        <span>총괄 관리자 모드 실행 중</span>
+      </div>
+      <div style="display:flex; align-items:center; gap:8px;">
+        <a href="admin.html" target="_blank" style="background:#4F46E5; color:#FFFFFF; border:none; padding:5px 14px; border-radius:12px; font-size:12px; font-weight:800; text-decoration:none; display:inline-flex; align-items:center; gap:4px; box-shadow:0 2px 6px rgba(0,0,0,0.2);">
+          👑 관리자 페이지
+        </a>
+        <button type="button" onclick="logoutUser()" style="background:rgba(255,255,255,0.18); color:#FFFFFF; border:none; padding:5px 10px; border-radius:12px; font-size:11.5px; font-weight:700; cursor:pointer;">
+          종료
+        </button>
+      </div>
+    </div>
+  `;
 }
 
 /* ---------- Fixed Active Reading Book Banner (Library & MY) ---------- */
@@ -2066,112 +2269,111 @@ function renderPostCard(p) {
   const displayThoughtStr = !isQuoteType ? (p.review || p.text || '') : (p.review || '');
 
   return `
-    <div class="card feed-card" id="post-card-${p.id}" data-post-id="${p.id}" style="margin-bottom:14px; padding:16px 18px; background:var(--card-bg); border:1px solid var(--line-subtle); box-shadow:var(--shadow-sm); border-radius:8px; position:relative; transition: all 0.3s ease;">
+    <article class="card feed-card quote-card ${isMenuOpen ? 'has-open-menu' : ''}" id="post-card-${p.id}" data-post-id="${p.id}" style="${isMenuOpen ? 'z-index:1000 !important;' : ''}">
       
-      <!-- 1. Top Header Row: Badge (Front) -> Book Title -> Page Point -> Meta Fold Button -->
-      <div style="margin-bottom:12px; padding-bottom:10px; border-bottom:1px solid var(--line-subtle);">
-        <div style="display:flex; align-items:center; justify-content:space-between;">
-          <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-            <!-- 1. Memo Type Badge (가장 앞) -->
-            <span class="memo-type-badge" style="background:${badgeBg}; color:${badgeColor}; font-size:11px; padding:2px 8px; border-radius:10px; font-weight:800; display:inline-flex; align-items:center;">
-              ${typeBadgeText}
-            </span>
-
-            <!-- 2. Book Title (클릭 시 도서 상세 페이지 이동) -->
-            <span class="clickable-book-title" data-opencontent="${c.id}" style="font-weight:800; font-size:14.5px; color:var(--ink-main); cursor:pointer; display:inline-flex; align-items:center; gap:4px;" title="'${esc(c.title)}' 도서 정보 보기">
-              📖 ${esc(c.title)}
-            </span>
-
-            <!-- 3. Page Point (글씨 키움 & 가독성 강조, 미지정 시 숨김) -->
-            ${(p.point != null && p.point > 0) ? `
-              <span style="font-size:12px; font-weight:800; color:var(--accent); background:rgba(180,83,9,0.12); padding:2px 7px; border-radius:4px; display:inline-flex; align-items:center; gap:2px;">
-                📍 ${p.point}p
-              </span>
-            ` : ''}
-
-            <!-- 4. Collapsible Meta Toggle Button (저자·출판사) -->
-            <button class="btn-meta-toggle" data-togglemeta="${p.id}" style="border:none; background:rgba(0,0,0,0.04); padding:2px 8px; border-radius:10px; font-size:11px; color:var(--ink-muted); cursor:pointer; font-weight:700; display:inline-flex; align-items:center; gap:2px;" title="저자/출판사 상세 보기">
-              <span>저자·출판사</span> <span>${isMetaOpen ? '▲' : '▼'}</span>
-            </button>
-          </div>
-
-          <!-- Top-Right 3-Dots Menu Dropdown -->
-          <div class="card-menu-wrap" style="position:relative; display:inline-block; flex-shrink:0;">
-            <button class="card-menu-btn" data-togglecardmenu="${p.id}" title="메뉴 옵션" aria-label="메뉴 옵션" style="width:28px; height:28px; border-radius:50%; border:none; background:transparent; color:var(--ink-muted); display:inline-flex; align-items:center; justify-content:center; cursor:pointer; padding:0;">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg>
-            </button>
-
-            ${isMenuOpen ? `
-              <div class="card-dropdown-menu align-right" style="position:absolute; top:32px; right:0; background:var(--card-bg); border:1px solid var(--line-strong); border-radius:6px; box-shadow:0 8px 24px rgba(0,0,0,0.12); z-index:100; min-width:145px; padding:4px;">
-                <button class="card-dropdown-item" data-collectpost="${p.id}" style="display:flex; align-items:center; gap:8px; width:100%; padding:8px 10px; border:none; background:none; color:var(--ink-main); font-size:12.5px; font-weight:600; cursor:pointer; border-radius:4px; text-align:left;">
-                  🔖 문장 수집
-                </button>
-                <button class="card-dropdown-item" data-copypost="${p.id}" style="display:flex; align-items:center; gap:8px; width:100%; padding:8px 10px; border:none; background:none; color:var(--ink-main); font-size:12.5px; font-weight:600; cursor:pointer; border-radius:4px; text-align:left;">
-                  📋 문장 복사
-                </button>
-                ${p.mine ? `
-                  <button class="card-dropdown-item" data-editpost="${p.id}" style="display:flex; align-items:center; gap:8px; width:100%; padding:8px 10px; border:none; background:none; color:var(--ink-main); font-size:12.5px; font-weight:600; cursor:pointer; border-radius:4px; text-align:left;">
-                    ✏️ 수정
-                  </button>
-                  <button class="card-dropdown-item danger" data-delmemo="${p.id}" style="display:flex; align-items:center; gap:8px; width:100%; padding:8px 10px; border:none; background:none; color:var(--danger, #DC2626); font-size:12.5px; font-weight:600; cursor:pointer; border-radius:4px; text-align:left;">
-                    🗑 삭제
-                  </button>
-                ` : ''}
-              </div>
-            ` : ''}
-          </div>
-        </div>
-
-        <!-- Expanded Meta Box (Author · Publisher · Genre) -->
-        ${isMetaOpen ? `
-          <div style="font-size:11.5px; color:var(--ink-muted); margin-top:8px; padding:6px 10px; background:var(--paper-bg); border-radius:4px; border:1px solid var(--line-subtle); animation:fadeIn 0.15s ease-out;">
-            ${esc(c.creator || '저자 미상')} · ${esc(c.publisher || '출판사 미상')}${c.pubDate ? ` (${esc(c.pubDate)})` : ''} · ${esc(c.genre || '소설')}
-          </div>
-        ` : ''}
-      </div>
-
-      <!-- 2. Middle Content Row: Quote & Review -->
-      <div style="margin-bottom:12px;">
-        ${(isQuoteType && p.text && p.text.trim()) ? `
-          <div class="post-quote" style="font-size:14.5px; line-height:1.6; color:var(--ink-main); font-family:'Gowun Batang', serif; padding:10px 14px; background:var(--paper-bg); border-left:3.5px solid ${badgeColor}; border-radius:0 4px 4px 0; margin-bottom:8px;">
-            "${esc(p.text.trim())}"
-          </div>
-        ` : ''}
-        ${(displayThoughtStr || stars) ? `
-          <div style="font-size:13px; color:var(--ink-sub); line-height:1.55; margin-top:6px; margin-bottom:8px; padding:0 2px;">
-            ${stars} ${esc(displayThoughtStr)}
-          </div>
-        ` : ''}
-      </div>
-
-      <!-- 3. Bottom Footer Row: Left (My Name & Created Date) | Right (Comments, Likes & Report) -->
-      <div style="display:flex; align-items:center; justify-content:space-between; margin-top:12px; padding-top:10px; border-top:1px solid var(--line-subtle); font-size:12px;">
-        <!-- Left: My Name & Created Date -->
-        <div style="display:flex; align-items:center; gap:6px;">
-          <div class="feed-avatar" style="width:20px; height:20px; border-radius:50%; background:var(--accent); color:#FFF; font-weight:800; font-size:10px; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+      <!-- 1. Top Header Row: User Avatar -> Nickname -> Time -> Top Right Menu -->
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; position:relative; z-index:3;">
+        <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap; flex:1;">
+          <!-- User Avatar Circle -->
+          <div class="feed-avatar" style="width:32px; height:32px; border-radius:50%; background:linear-gradient(135deg, var(--accent) 0%, #D97706 100%); color:#FFF; font-weight:800; font-size:13px; display:flex; align-items:center; justify-content:center; flex-shrink:0; box-shadow:0 2px 8px rgba(0,0,0,0.1);">
             ${avatarLetter}
           </div>
-          <span style="font-weight:700; font-size:12.5px; color:var(--ink-main);">${nicknameStr}</span>
-          <span style="color:var(--ink-muted); font-size:11.5px;">· ${timeStr}</span>
+
+          <!-- User Nickname & Created Time matching 4커뮤니티.html -->
+          <div style="display:flex; align-items:center; gap:6px;">
+            <span class="font-label-sm text-label-sm text-on-surface-variant">${nicknameStr}</span>
+            <span style="font-size:11px; color:var(--ink-muted);">• ${timeStr}</span>
+          </div>
         </div>
 
-        <!-- Right Aligned: Comment Count, Likes & Report -->
-        <div style="display:flex; align-items:center; gap:6px;">
-          <button class="feed-action-btn ${isCommentsExpanded ? 'active-comments' : ''}" data-togglecomments="${p.id}" title="대댓글 보기 및 작성" style="padding:3px 8px; background:${isCommentsExpanded ? 'var(--accent-light)' : 'var(--paper-bg)'}; border:1px solid var(--line-subtle); border-radius:12px; display:inline-flex; align-items:center; gap:4px; font-size:11.5px; font-weight:700; color:${isCommentsExpanded ? 'var(--accent)' : 'var(--ink-main)'}; cursor:pointer;" aria-label="대댓글 보기 및 작성">
-            💬 <span>${allComments.length}</span>
+        <!-- Top-Right 3-Dots Menu Dropdown -->
+        <div class="card-menu-wrap" style="position:relative; display:inline-block; flex-shrink:0;">
+          <button class="card-menu-btn" data-togglecardmenu="${p.id}" title="메뉴 옵션" aria-label="메뉴 옵션" style="width:30px; height:30px; border-radius:50%; border:none; background:transparent; color:var(--ink-muted); display:inline-flex; align-items:center; justify-content:center; cursor:pointer; padding:0;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg>
           </button>
 
-          <button class="feed-action-btn ${p.mine ? 'liked' : ''}" data-like="${p.id}" style="padding:3px 8px; background:var(--paper-bg); border:1px solid var(--line-subtle); border-radius:12px; display:inline-flex; align-items:center; gap:4px; font-size:11.5px; font-weight:700; color:var(--ink-main); cursor:pointer;" title="공감하기">
-            ❤️ <span>${p.likes || 0}</span>
+          ${isMenuOpen ? `
+            <div class="card-dropdown-menu align-right" style="position:absolute; top:34px; right:0; background:var(--card-bg); border:1px solid var(--line-strong); border-radius:8px; box-shadow:0 12px 32px rgba(0,0,0,0.2); z-index:500 !important; min-width:150px; padding:6px;">
+              <button class="card-dropdown-item" data-collectpost="${p.id}" style="display:flex; align-items:center; gap:8px; width:100%; padding:8px 10px; border:none; background:none; color:var(--ink-main); font-size:13px; font-weight:600; cursor:pointer; border-radius:4px; text-align:left;">
+                🔖 문장 수집
+              </button>
+              <button class="card-dropdown-item" data-copypost="${p.id}" style="display:flex; align-items:center; gap:8px; width:100%; padding:8px 10px; border:none; background:none; color:var(--ink-main); font-size:13px; font-weight:600; cursor:pointer; border-radius:4px; text-align:left;">
+                📋 문장 복사
+              </button>
+              <button class="card-dropdown-item" data-reportpost="${p.id}" style="display:flex; align-items:center; gap:8px; width:100%; padding:8px 10px; border:none; background:none; color:var(--ink-main); font-size:13px; font-weight:600; cursor:pointer; border-radius:4px; text-align:left;">
+                🚨 게시글 신고
+              </button>
+              ${(p.mine || (currentUser && currentUser.isAdmin)) ? `
+                ${p.mine ? `
+                  <button class="card-dropdown-item" data-editpost="${p.id}" style="display:flex; align-items:center; gap:8px; width:100%; padding:8px 10px; border:none; background:none; color:var(--ink-main); font-size:13px; font-weight:600; cursor:pointer; border-radius:4px; text-align:left;">
+                    ✏️ 수정
+                  </button>
+                ` : ''}
+                <button class="card-dropdown-item danger" data-delmemo="${p.id}" style="display:flex; align-items:center; gap:8px; width:100%; padding:8px 10px; border:none; background:none; color:var(--danger, #DC2626); font-size:13px; font-weight:600; cursor:pointer; border-radius:4px; text-align:left;">
+                  🗑 삭제 ${(currentUser && currentUser.isAdmin && !p.mine) ? '(관리자)' : ''}
+                </button>
+              ` : ''}
+            </div>
+          ` : ''}
+        </div>
+      </div>
+
+      <!-- 2. Main Quote Body Block matching 4커뮤니티.html (24px Noto Serif KR) -->
+      ${(isQuoteType && p.text && p.text.trim()) ? `
+        <blockquote class="font-display-quote-mobile text-display-quote-mobile text-primary mb-5 leading-relaxed quote-text">
+          "${esc(p.text.trim())}"
+          ${(!p.isEbook && p.point != null && p.point > 0) ? `
+            <span style="font-size:13px; font-weight:300; color:var(--ink-muted); font-family:Pretendard, sans-serif; vertical-align:middle;"> _ ${p.point}p</span>
+          ` : ''}
+        </blockquote>
+      ` : ''}
+
+      <!-- 3. Thought / Review Commentary Box (with Type Badge at Very Front if thought exists) -->
+      ${(displayThoughtStr && displayThoughtStr.trim()) ? `
+        <div style="font-size:14px; color:var(--ink-sub); line-height:1.6; background:rgba(0,0,0,0.025); border-left:3.5px solid ${badgeColor}; padding:10px 14px; border-radius:0 8px 8px 0; margin-bottom:14px; position:relative; z-index:2; display:flex; align-items:flex-start; gap:8px;">
+          <span class="memo-type-badge" style="background:${badgeBg}; color:${badgeColor}; font-size:11px; padding:2px 8px; border-radius:12px; font-weight:700; display:inline-flex; align-items:center; flex-shrink:0; margin-top:2px;">
+            ${typeBadgeText}
+          </span>
+          <div style="flex:1;">
+            ${stars} ${esc(displayThoughtStr.trim())}
+          </div>
+        </div>
+      ` : ''}
+
+      <!-- 4. Bottom Footer Row: Book Author & Title (Left) | Actions (Right) matching 4커뮤니티.html -->
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-top:14px; position:relative; z-index:2;">
+        
+        <!-- Left: Author, <Book Title> matching 4커뮤니티.html -->
+        <div class="text-on-surface-variant">
+          <p class="font-label-sm text-label-sm clickable-book-title" data-opencontent="${c.id}" style="margin:0; cursor:pointer;" title="'${esc(c.title)}' 도서 정보 보기">
+            ${esc(c.creator || '저자 미상')}, &lt;${esc(c.title)}&gt;
+          </p>
+        </div>
+
+        <!-- Right Aligned: Favorite (Likes) & Chat Bubble (Comments) -->
+        <div class="flex items-center gap-4" style="display:flex; align-items:center; gap:16px;">
+          <!-- Favorite (Likes) -->
+          <button class="feed-action-btn ${p.mine ? 'liked' : ''}" data-like="${p.id}" style="border:none; background:transparent; display:inline-flex; align-items:center; gap:4px; font-size:13.5px; font-weight:500; color:${p.likes ? 'var(--secondary, #984813)' : 'var(--ink-sub)'}; cursor:pointer; padding:0; transition:transform 0.15s ease;" title="공감하기">
+            <span class="material-symbols-outlined text-[18px]" style="font-size:18px; font-variation-settings: '${p.likes ? "'FILL' 1" : "'FILL' 0"}'; color:${p.likes ? '#984813' : 'inherit'};">favorite</span>
+            <span class="font-label-sm text-label-sm">${p.likes || 0}</span>
           </button>
 
-          <button class="feed-action-btn" data-reportpost="${p.id}" style="padding:3px 8px; background:var(--paper-bg); border:1px solid var(--line-subtle); border-radius:12px; display:inline-flex; align-items:center; font-size:11.5px; font-weight:700; color:var(--ink-muted); cursor:pointer;" title="게시글 신고하기" aria-label="게시글 신고하기">
-            🚨
+          <!-- Chat Bubble (Comments) -->
+          <button class="feed-action-btn ${isCommentsExpanded ? 'active-comments' : ''}" data-togglecomments="${p.id}" style="border:none; background:transparent; display:inline-flex; align-items:center; gap:4px; font-size:13.5px; font-weight:500; color:${isCommentsExpanded ? 'var(--accent)' : 'var(--ink-sub)'}; cursor:pointer; padding:0; transition:transform 0.15s ease;" title="댓글 보기 및 작성" aria-label="댓글 보기 및 작성">
+            <span class="material-symbols-outlined text-[18px]" style="font-size:18px;">chat_bubble</span>
+            <span class="font-label-sm text-label-sm">${allComments.length}</span>
           </button>
         </div>
       </div>
 
-    </div>
+      <!-- Collapsible Meta Box (Author · Publisher · Genre) -->
+      ${isMetaOpen ? `
+        <div style="font-size:12px; color:var(--ink-muted); margin-top:10px; padding:8px 12px; background:var(--paper-bg); border-radius:6px; border:1px solid var(--line-subtle); animation:fadeIn 0.15s ease-out;">
+          ${esc(c.creator || '저자 미상')} · ${esc(c.publisher || '출판사 미상')}${c.pubDate ? ` (${esc(c.pubDate)})` : ''} · ${esc(c.genre || '소설')}
+        </div>
+      ` : ''}
+
+    </article>
   `;
 }
 
@@ -2403,8 +2605,30 @@ function renderBookItem(c) {
   `;
 }
 
+function renderAnnouncementBanner() {
+  const activeAnnouncements = (db.announcements || []).filter(a => a.active !== false);
+  if (activeAnnouncements.length === 0) return '';
+
+  return `
+    <div class="announcement-feed-banner" style="background:linear-gradient(135deg, #1E1B4B 0%, #312E81 100%); color:#FFFFFF; padding:14px 16px; border-radius:10px; margin-bottom:18px; box-shadow:0 4px 16px rgba(30, 27, 75, 0.25); border:1px solid rgba(255,255,255,0.12);">
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
+        <div style="display:flex; align-items:center; gap:6px; font-size:12px; font-weight:800; background:rgba(255,255,255,0.18); padding:3px 10px; border-radius:12px;">
+          <span>📢</span>
+          <span>서비스 공지사항</span>
+        </div>
+      </div>
+      ${activeAnnouncements.map(a => `
+        <div style="margin-top:6px;">
+          <div style="font-size:14px; font-weight:800; color:#FFFFFF; margin-bottom:3px;">${esc(a.title)}</div>
+          <div style="font-size:12.5px; opacity:0.9; line-height:1.5; color:#E0E7FF;">${esc(a.content)}</div>
+        </div>
+      `).join('<div style="height:1px; background:rgba(255,255,255,0.15); margin:8px 0;"></div>')}
+    </div>
+  `;
+}
+
 function renderFeed() {
-  let posts = [...db.posts].filter(p => p.mine).sort((a, b) => b.createdAt - a.createdAt);
+  let posts = [...(db.posts || [])].sort((a, b) => b.createdAt - a.createdAt);
 
   const screenHeader = `
     <div class="screen-header">
@@ -2423,10 +2647,11 @@ function renderFeed() {
 
   const listHtml = posts.map(p => renderPostCard(p)).join('');
 
+  const annBannerHtml = renderAnnouncementBanner();
   const activeBannerHtml = renderActiveReadingBanner();
 
   if (posts.length === 0) {
-    return screenHeader + activeBannerHtml + `
+    return renderAdminHeaderBar() + screenHeader + annBannerHtml + activeBannerHtml + `
       <div class="empty-state">
         <span class="icon">📖</span>
         오늘의 독서 감상이 없어요.<br>'✍️ 새 기록 쓰기' 버튼으로 첫 인상을 남겨보세요!
@@ -2434,7 +2659,7 @@ function renderFeed() {
     `;
   }
 
-  return screenHeader + activeBannerHtml + listHtml;
+  return renderAdminHeaderBar() + screenHeader + annBannerHtml + activeBannerHtml + listHtml;
 }
 
 /* ---------- Community Screen (Top 10 Popular Books & Friends) ---------- */
@@ -2459,7 +2684,7 @@ const FRIENDS_READING = [
 ];
 
 function renderCommunity() {
-  const screenHeader = `
+  const screenHeader = renderAdminHeaderBar() + `
     <div class="screen-header" style="width:100%; box-sizing:border-box;">
       <h1>커뮤니티</h1>
     </div>
@@ -2735,17 +2960,17 @@ function renderStats() {
 
 /* ---------- MY Page (Twitter/X Style SNS Profile Page) ---------- */
 function renderMyPage() {
-  if (!currentUser && !state.guestMode) {
+  if (!currentUser) {
     return `
       <div style="min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:40px 20px; text-align:center; background:var(--paper-bg); box-sizing:border-box;">
         <div style="width:76px; height:76px; border-radius:50%; background:linear-gradient(135deg, var(--accent) 0%, #D97706 100%); display:flex; align-items:center; justify-content:center; color:#FFF; font-size:36px; margin-bottom:18px; box-shadow:0 8px 24px rgba(194, 94, 0, 0.25);">
           📖
         </div>
         <h2 style="font-size:21px; font-weight:900; color:var(--ink-main); margin-bottom:8px;">
-          ✨ 소셜 계정으로 1초 만에 시작하기
+          ✨ 문장수집가 시작하기
         </h2>
         <p style="font-size:13.5px; color:var(--ink-muted); line-height:1.6; max-width:320px; margin-bottom:28px;">
-          Supabase 인증으로 감명 깊게 읽은 책과 문장을 안전하게 동기화하고 나만의 서재를 만들어보세요.
+          소셜 계정 또는 관리자 모드로 로그인하여 나만의 감성 서재와 독서 기록을 관리하세요.
         </p>
 
         <div style="width:100%; max-width:320px; display:flex; flex-direction:column; gap:12px;">
@@ -2759,8 +2984,13 @@ function renderMyPage() {
             <span>Google 계정으로 계속하기</span>
           </button>
 
-          <button type="button" onclick="state.guestMode = true; render();" style="margin-top:6px; background:transparent; border:none; color:var(--ink-muted); font-size:13px; font-weight:600; text-decoration:underline; cursor:pointer; padding:6px;">
-            로그인 없이 둘러보기 (게스트 모드)
+          <button type="button" onclick="loginWithDemoUser('demo')" style="width:100%; padding:12.5px; border:1px solid var(--line-strong); border-radius:10px; background:var(--card-bg); color:var(--ink-main); font-size:14px; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; box-shadow:0 2px 8px rgba(0,0,0,0.04);">
+            <span>👤 일반 회원 데모 로그인</span>
+          </button>
+
+          <button type="button" onclick="loginAsAdmin()" style="width:100%; padding:13px; border:none; border-radius:10px; background:linear-gradient(135deg, #1E1B4B 0%, #312E81 100%); color:#FFFFFF; font-size:14px; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; box-shadow:0 4px 14px rgba(49, 46, 129, 0.35);">
+            <span style="font-size:17px;">👑</span>
+            <span>관리자 모드로 시작하기</span>
           </button>
         </div>
       </div>
@@ -2799,6 +3029,7 @@ function renderMyPage() {
   const userTier = getUserTierInfo();
 
   return `
+    ${renderAdminHeaderBar()}
     <div class="screen-header">
       <div style="display:flex; align-items:center; gap:8px;">
         <h1>내 프로필</h1>
@@ -2833,28 +3064,19 @@ function renderMyPage() {
       <div style="padding:0 16px 16px; position:relative;">
         <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-top:-38px; margin-bottom:12px;">
           <div class="tw-avatar" style="width:76px; height:76px; border-radius:50%; border:4px solid var(--card-bg); background:var(--accent); color:#FFF; font-size:30px; font-weight:800; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 12px rgba(0,0,0,0.15); overflow:hidden;">
-            ${currentUser && currentUser.avatar ? `<img src="${currentUser.avatar}" style="width:100%; height:100%; object-fit:cover;">` : (currentUser ? esc(currentUser.name.slice(0, 1)) : '게')}
+            ${currentUser && currentUser.avatar ? `<img src="${currentUser.avatar}" style="width:100%; height:100%; object-fit:cover;">` : esc((currentUser ? currentUser.name : '독서가').slice(0, 1))}
           </div>
-          ${(currentUser || state.guestMode) ? `
-            <div style="display:flex; gap:6px; align-items:center;">
-              <button class="btn btn-ghost" style="padding:6px 12px; font-size:12.5px; font-weight:700; border:1px solid var(--line-strong); border-radius:3px; background:var(--card-bg); color:var(--ink-main);" onclick="openEditProfileModal()">
-                ✏️ 프로필 수정
-              </button>
-              <button class="btn btn-ghost" style="padding:6px 12px; font-size:12.5px; font-weight:700; border:1px solid var(--line-strong); border-radius:3px; background:var(--card-bg); color:#DC2626;" onclick="logoutUser()">
-                🚪 로그아웃
-              </button>
-            </div>
-          ` : `
-            <button class="btn btn-primary" style="padding:6px 14px; font-size:12.5px; font-weight:700; border-radius:3px;" onclick="document.getElementById('auth-modal')?.scrollIntoView({behavior:'smooth'})">
-              🔑 로그인 / 가입
+          <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
+            <button class="btn btn-ghost" style="padding:6px 14px; font-size:12.5px; font-weight:700; border:1px solid var(--line-strong); border-radius:20px; background:var(--card-bg); color:var(--ink-main); cursor:pointer; display:inline-flex; align-items:center; gap:4px;" onclick="openEditProfileModal()">
+              ✏️ 프로필 수정
             </button>
-          `}
+          </div>
         </div>
 
         <!-- User Bio Info -->
         <div style="margin-bottom:14px;">
           <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
-            <span style="font-size:18px; font-weight:800; color:var(--ink-main);">${currentUser ? esc(currentUser.name) : '게스트'}</span>
+            <span style="font-size:18px; font-weight:800; color:var(--ink-main);">${esc(currentUser ? currentUser.name : '독서가')}</span>
             <span style="color:var(--accent); font-size:15px;" title="인증된 독서가">✓</span>
             ${currentUser && currentUser.isAdmin ? `
               <span style="background:linear-gradient(135deg, #B45309 0%, #D97A43 100%); color:#FFFFFF; border:none; padding:3px 10px; border-radius:12px; font-size:11.5px; font-weight:800; display:inline-flex; align-items:center; gap:4px; box-shadow:0 2px 6px rgba(180,83,9,0.25);">
@@ -2867,7 +3089,7 @@ function renderMyPage() {
               </button>
             `}
           </div>
-          <div style="font-size:13px; color:var(--ink-muted); font-weight:500; margin-top:2px;">${currentUser ? esc(currentUser.email) : '@guest_bookmate'}</div>
+          <div style="font-size:13px; color:var(--ink-muted); font-weight:500; margin-top:2px;">${esc(currentUser ? currentUser.email : '')}</div>
 
           <div style="font-size:13.5px; color:var(--ink-main); margin-top:8px; line-height:1.45; font-weight:500;">
             ${esc(currentUser?.bio || db.userProfile?.bio || '서두르지 않고 조용하게 마음에 남는 문장을 수집합니다. 📖✨')}
@@ -3076,9 +3298,9 @@ function renderMyPage() {
     ` : `
       <!-- 내 서재 상태 칩 필터 (status-chips 디자인 적용) -->
       <div class="status-chips" style="width:100%; box-sizing:border-box; margin-top:8px; margin-bottom:14px; display:flex; justify-content:center; align-items:center; gap:8px; text-align:center;">
-        <button class="badge ${activeMyLibFilter === 'WANT' ? '' : 'outline'}" data-mylibfilter="WANT" style="flex:1; text-align:center; padding:8px 10px; font-size:12.5px; font-weight:700;">보관함 (${wantCount})</button>
-        <button class="badge ${activeMyLibFilter === 'ACTIVE' ? '' : 'outline'}" data-mylibfilter="ACTIVE" style="flex:1; text-align:center; padding:8px 10px; font-size:12.5px; font-weight:700;">읽는 중 (${activeCount})</button>
-        <button class="badge ${activeMyLibFilter === 'DONE' ? '' : 'outline'}" data-mylibfilter="DONE" style="flex:1; text-align:center; padding:8px 10px; font-size:12.5px; font-weight:700;">완독 (${doneCount})</button>
+        <button class="badge ${activeMyLibFilter === 'WANT' ? 'selected' : 'is-outline'}" data-mylibfilter="WANT" style="flex:1; text-align:center; padding:8px 10px; font-size:12.5px; font-weight:700;">보관함 (${wantCount})</button>
+        <button class="badge ${activeMyLibFilter === 'ACTIVE' ? 'selected' : 'is-outline'}" data-mylibfilter="ACTIVE" style="flex:1; text-align:center; padding:8px 10px; font-size:12.5px; font-weight:700;">읽는 중 (${activeCount})</button>
+        <button class="badge ${activeMyLibFilter === 'DONE' ? 'selected' : 'is-outline'}" data-mylibfilter="DONE" style="flex:1; text-align:center; padding:8px 10px; font-size:12.5px; font-weight:700;">완독 (${doneCount})</button>
       </div>
 
       
@@ -3105,6 +3327,10 @@ function barcodeHtml(c, m, activeDetailTab = 'MY') {
   // 탭 구분에 따른 바코드 핀포인트 선 필터링 (내 기록: mine === true, 커뮤니티 기록: mine === false)
   const isMineTab = (activeDetailTab === 'MY');
   const marks = db.posts.filter(p => p.contentId === c.id && p.point != null && (isMineTab ? !!p.mine : !p.mine));
+  
+  // 왼쪽부터 페이지 순서대로 정렬하여 제일 왼쪽 첫 번째 태그는 무조건 상단(TOP) 배치
+  marks.sort((a, b) => (a.point || 0) - (b.point || 0));
+
   const pct = Math.min(Math.round((cur / total) * 100), 100);
 
   const MARK_COLORS = ['#F59E0B', '#EF4444', '#10B981', '#6366F1', '#EC4899', '#8B5CF6', '#06B6D4', '#F97316'];
@@ -3121,9 +3347,10 @@ function barcodeHtml(c, m, activeDetailTab = 'MY') {
       ${marks.map((mk, i) => {
         const color = MARK_COLORS[i % MARK_COLORS.length];
         const posPct = Math.min(Math.max((mk.point / total) * 100, 2), 98);
+        const isBottom = (i % 2 === 1); // 0번째(왼쪽 첫번째)는 무조건 상단(isBottom=false)
         return `
           <div class="post-mark" data-post-id="${mk.id}" data-post-point="${mk.point}" data-is-mine="${mk.mine ? '1' : '0'}" style="left:${posPct}%; background:${color}; box-shadow:0 0 3px ${color}; cursor:pointer;" title="${mk.point}p 문장 기록">
-            <span class="post-mark-label" data-post-id="${mk.id}" data-post-point="${mk.point}" data-is-mine="${mk.mine ? '1' : '0'}" style="background:${color}; pointer-events:auto; cursor:pointer;">${mk.point}p</span>
+            <span class="post-mark-label ${isBottom ? 'is-bottom' : 'is-top'}" data-post-id="${mk.id}" data-post-point="${mk.point}" data-is-mine="${mk.mine ? '1' : '0'}" style="background:${color}; pointer-events:auto; cursor:pointer; ${isBottom ? 'bottom:3px; top:auto;' : 'top:3px; bottom:auto;'}">${mk.point}p</span>
           </div>
         `;
       }).join('')}
@@ -3161,6 +3388,7 @@ function renderLibrary() {
   ` : filtered.map(({ c }) => renderBookItem(c)).join('');
 
   return `
+    ${renderAdminHeaderBar()}
     <div style="width:100%; box-sizing:border-box;">
       <!-- Screen Header with Title & Action Button -->
       <div class="screen-header" style="width:100%; box-sizing:border-box;">
@@ -3176,9 +3404,9 @@ function renderLibrary() {
 
       <!-- 내 서재 상태 칩 필터 (status-chips 디자인 적용) -->
       <div class="status-chips" style="width:100%; box-sizing:border-box; margin-top:8px; margin-bottom:14px; display:flex; justify-content:center; align-items:center; gap:8px; text-align:center;">
-        <button class="badge ${activeTab === 'WANT' ? '' : 'outline'}" data-libfilter="WANT" style="flex:1; text-align:center; padding:8px 10px; font-size:12.5px; font-weight:700;">보관함 (${wantCount})</button>
-        <button class="badge ${activeTab === 'ACTIVE' ? '' : 'outline'}" data-libfilter="ACTIVE" style="flex:1; text-align:center; padding:8px 10px; font-size:12.5px; font-weight:700;">읽는 중 (${activeCount})</button>
-        <button class="badge ${activeTab === 'DONE' ? '' : 'outline'}" data-libfilter="DONE" style="flex:1; text-align:center; padding:8px 10px; font-size:12.5px; font-weight:700;">완독 (${doneCount})</button>
+        <button class="badge ${activeTab === 'WANT' ? 'selected' : 'is-outline'}" data-libfilter="WANT" style="flex:1; text-align:center; padding:8px 10px; font-size:12.5px; font-weight:700;">보관함 (${wantCount})</button>
+        <button class="badge ${activeTab === 'ACTIVE' ? 'selected' : 'is-outline'}" data-libfilter="ACTIVE" style="flex:1; text-align:center; padding:8px 10px; font-size:12.5px; font-weight:700;">읽는 중 (${activeCount})</button>
+        <button class="badge ${activeTab === 'DONE' ? 'selected' : 'is-outline'}" data-libfilter="DONE" style="flex:1; text-align:center; padding:8px 10px; font-size:12.5px; font-weight:700;">완독 (${doneCount})</button>
       </div>
 
       <!-- Book Grid -->
@@ -3419,9 +3647,9 @@ function renderDetail(contentId) {
 
             <!-- 5. Status Chips (보관함/읽는중/완독 영역 안 중앙정렬) -->
             <div class="status-chips" style="margin-top:10px; margin-bottom:0; width:100%; display:flex; justify-content:center; align-items:center; gap:8px; text-align:center;">
-              <button class="badge ${status === 'WANT' ? '' : 'outline'}" data-setstatus="WANT" style="flex:1; text-align:center; padding:7px 10px;">보관함</button>
-              <button class="badge ${status === 'ACTIVE' ? '' : 'outline'}" data-setstatus="ACTIVE" style="flex:1; text-align:center; padding:7px 10px;">읽는 중</button>
-              <button class="badge ${status === 'DONE' ? '' : 'outline'}" data-setstatus="DONE" style="flex:1; text-align:center; padding:7px 10px;">완독</button>
+              <button class="badge ${status === 'WANT' ? 'selected' : 'is-outline'}" data-setstatus="WANT" style="flex:1; text-align:center; padding:7px 10px;">보관함</button>
+              <button class="badge ${status === 'ACTIVE' ? 'selected' : 'is-outline'}" data-setstatus="ACTIVE" style="flex:1; text-align:center; padding:7px 10px;">읽는 중</button>
+              <button class="badge ${status === 'DONE' ? 'selected' : 'is-outline'}" data-setstatus="DONE" style="flex:1; text-align:center; padding:7px 10px;">완독</button>
             </div>
           </div>
         </div>
@@ -4419,10 +4647,13 @@ function openTierTableModal() {
   renderModal();
 }
 
-/* ---------- Impression Modal Bottom Sheet ---------- */
 function openEditProfileModal() {
   state.modal = { type: 'editProfile' };
   renderModal();
+}
+
+function openAdminDashboardModal() {
+  window.open('admin.html', '_blank');
 }
 
 function renderModal() {
@@ -4637,33 +4868,61 @@ function renderModal() {
 
   if (state.modal.type === 'settings') {
     const curTheme = state.theme || 'LIGHT';
+    const userName = currentUser ? (currentUser.name || currentUser.nickname || '독서 수집가') : (db.userProfile?.name || '독서 수집가');
+    const userEmail = currentUser ? (currentUser.email || 'user@bookmate.me') : 'guest@bookmate.me';
+    const userLetter = userName.slice(0, 1);
+    const isAdmin = currentUser && currentUser.isAdmin;
 
     root.innerHTML = `
       <div class="modal-backdrop top-modal" id="modalBackdrop">
-        <div class="modal-sheet" id="modalSheet" style="max-width:380px;">
-          <div class="modal-header" style="padding-top: 16px; padding-bottom: 10px;">
-            <div class="title" style="font-weight: 800; font-size: 16px; display:flex; align-items:center; gap:6px;">
-              <span>⚙️</span> 시스템 설정
+        <div class="modal-sheet" id="modalSheet" style="max-width:540px; width:100%; margin:0 auto; border-radius:16px 16px 0 0; box-sizing:border-box;">
+          <div class="modal-handle"></div>
+          <div class="modal-header" style="padding-top:14px; padding-bottom:12px;">
+            <div class="title" style="font-weight:800; font-size:16.5px; display:flex; align-items:center; gap:8px;">
+              <span>⚙️ 시스템 설정 및 계정 관리</span>
             </div>
             <button class="close-btn" id="modalClose" aria-label="닫기">✕</button>
           </div>
-          <div class="modal-body" style="padding: 14px 20px 24px;">
+          <div class="modal-body" style="padding:14px 20px 24px; box-sizing:border-box;">
             
+            <!-- 계정 프로필 요약 카드 -->
+            <div style="background:var(--paper-bg); border:1px solid var(--line-subtle); border-radius:10px; padding:14px 16px; margin-bottom:18px; display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+              <div style="display:flex; align-items:center; gap:12px;">
+                <div style="width:40px; height:40px; border-radius:50%; background:linear-gradient(135deg, var(--accent) 0%, #D97706 100%); color:#FFF; font-weight:800; font-size:16px; display:flex; align-items:center; justify-content:center; flex-shrink:0; box-shadow:0 2px 8px rgba(0,0,0,0.12);">
+                  ${userLetter}
+                </div>
+                <div>
+                  <div style="font-weight:800; font-size:14.5px; color:var(--ink-main); display:flex; align-items:center; gap:6px;">
+                    ${esc(userName)}
+                    ${isAdmin ? `<span style="font-size:10.5px; font-weight:800; background:rgba(220,38,38,0.12); color:#DC2626; padding:2px 7px; border-radius:10px;">관리자</span>` : ''}
+                  </div>
+                  <div style="font-size:12px; color:var(--ink-muted); margin-top:2px;">${esc(userEmail)}</div>
+                </div>
+              </div>
+              <button class="btn btn-ghost" onclick="location.href='admin.html';" style="font-size:12px; font-weight:700; color:var(--accent); border:1px solid var(--line-strong); padding:6px 12px; border-radius:6px; background:var(--card-bg); cursor:pointer;">
+                👑 관리자 페이지
+              </button>
+            </div>
+
             <!-- Theme Setting -->
             <div style="margin-bottom:22px;">
-              <div style="font-size:13px; font-weight:700; color:var(--ink-main); margin-bottom:10px; display:flex; align-items:center; gap:4px;">
-                <span>🎨 테마 설정</span>
+              <div style="font-size:13px; font-weight:700; color:var(--ink-main); margin-bottom:10px; display:flex; align-items:center; gap:6px;">
+                <span>🎨 화면 테마 설정</span>
               </div>
-              <div style="display:flex; gap:6px;">
-                <button class="chip ${curTheme === 'LIGHT' ? 'selected' : ''}" data-settheme="LIGHT" style="flex:1; justify-content:center; font-weight:700; padding:8px 0; font-size:12px;">☀️ 라이트</button>
-                <button class="chip ${curTheme === 'DARK' ? 'selected' : ''}" data-settheme="DARK" style="flex:1; justify-content:center; font-weight:700; padding:8px 0; font-size:12px;">🌙 다크</button>
-                <button class="chip ${curTheme === 'SYSTEM' ? 'selected' : ''}" data-settheme="SYSTEM" style="flex:1; justify-content:center; font-weight:700; padding:8px 0; font-size:12px;">💻 시스템</button>
+              <div style="display:flex; gap:8px;">
+                <button class="chip ${curTheme === 'LIGHT' ? 'selected' : ''}" data-settheme="LIGHT" style="flex:1; justify-content:center; font-weight:700; padding:9px 0; font-size:13px;">☀️ 라이트</button>
+                <button class="chip ${curTheme === 'DARK' ? 'selected' : ''}" data-settheme="DARK" style="flex:1; justify-content:center; font-weight:700; padding:9px 0; font-size:13px;">🌙 다크</button>
+                <button class="chip ${curTheme === 'SYSTEM' ? 'selected' : ''}" data-settheme="SYSTEM" style="flex:1; justify-content:center; font-weight:700; padding:9px 0; font-size:13px;">💻 시스템</button>
               </div>
             </div>
 
-            <button class="btn btn-primary full" id="saveSettingsBtn" style="padding:10px; font-size:13px; font-weight:700; margin-top:6px;">
-              확인
-            </button>
+            <!-- 계정 로그아웃 버튼 -->
+            <div style="margin-top:24px; padding-top:16px; border-top:1px solid var(--line-subtle);">
+              <button class="btn full" id="settingsLogoutBtn" style="padding:12px; font-size:14px; font-weight:800; background:rgba(220,38,38,0.08); color:#DC2626; border:1px solid rgba(220,38,38,0.2); border-radius:8px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px; transition:background 0.2s;">
+                <span>🚪</span> 계정 로그아웃
+              </button>
+            </div>
+
           </div>
         </div>
       </div>
@@ -4681,12 +4940,19 @@ function renderModal() {
       };
     });
 
-    const saveSettingsBtn = document.getElementById('saveSettingsBtn');
-    if (saveSettingsBtn) {
-      saveSettingsBtn.onclick = () => {
-        applyTheme();
-        toast('테마 설정이 적용되었습니다!');
-        closeModal();
+    const logoutBtn = document.getElementById('settingsLogoutBtn');
+    if (logoutBtn) {
+      logoutBtn.onclick = () => {
+        if (confirm('정말 로그아웃 하시겠습니까?')) {
+          localStorage.removeItem('jigeumini_auth_user');
+          currentUser = null;
+          if (window.sbClient) {
+            try { window.sbClient.auth.signOut(); } catch(e){}
+          }
+          toast('계정이 정상적으로 로그아웃되었습니다.');
+          closeModal();
+          render();
+        }
       };
     }
     return;
@@ -5069,14 +5335,25 @@ function renderModal() {
               <button type="button" class="chip ${postForm.memoType==='REVIEW' ? 'selected':''}" data-mtype="REVIEW" style="font-size:12px; padding:6px 12px; font-weight:700;">⭐ 리뷰</button>
             </div>
 
-            <!-- 직관적인 페이지 선택 (리뷰 유형일 경우 선택 사항) -->
-            <label class="form-label" style="font-weight:700; font-size:12.5px; margin-bottom:6px; display:block; color:var(--ink-main);">📍 독서 지점 (페이지) ${postForm.memoType === 'REVIEW' ? '<span style="font-weight:500; font-size:11.5px; color:var(--ink-muted);">(선택)</span>' : ''}</label>
-            <div style="display:flex; align-items:center; gap:8px; margin-bottom:14px; background:var(--paper-bg); border:1px solid var(--line-subtle); border-radius:3px; padding:8px 14px;">
-              <span style="font-size:13px; font-weight:600; color:var(--ink-muted);">페이지:</span>
-              <input type="number" id="pf-page" value="${(postForm.memoType === 'REVIEW' && (!postForm.page || postForm.page === '0')) ? '' : defaultPage}" min="0" max="${totalPoint}" placeholder="${postForm.memoType === 'REVIEW' ? '선택' : '0'}" 
-                     style="width:75px; text-align:center; padding:6px 4px; font-size:15px; font-weight:800; border:1px solid var(--line-strong); border-radius:3px; background:var(--card-bg); color:var(--accent);">
-              <span style="font-size:13px; font-weight:600; color:var(--ink-muted);">/ 전체 ${totalPoint}p</span>
-            </div>
+            <!-- 직관적인 페이지 선택 (전자책 읽음 옵션 추가) -->
+            ${postForm.memoType !== 'REVIEW' ? `
+              <label class="form-label" style="font-weight:700; font-size:12.5px; margin-bottom:6px; display:block; color:var(--ink-main);">📍 독서 지점 (페이지)</label>
+              <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; background:var(--paper-bg); border:1px solid var(--line-subtle); border-radius:6px; padding:10px 14px; flex-wrap:wrap; gap:8px;">
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <span style="font-size:13px; font-weight:600; color:var(--ink-muted);">페이지:</span>
+                  <input type="number" id="pf-page" value="${defaultPage}" min="0" max="${totalPoint}" placeholder="0" 
+                         ${postForm.isEbook ? 'disabled' : ''}
+                         style="width:75px; text-align:center; padding:6px 4px; font-size:15px; font-weight:800; border:1px solid var(--line-strong); border-radius:3px; background:${postForm.isEbook ? 'var(--line-subtle)' : 'var(--card-bg)'}; color:${postForm.isEbook ? 'var(--ink-muted)' : 'var(--accent)'}; opacity:${postForm.isEbook ? '0.5' : '1'};">
+                  <span style="font-size:13px; font-weight:600; color:var(--ink-muted);">/ 전체 ${totalPoint}p</span>
+                </div>
+
+                <!-- 이북으로 읽음 체크박스 (아이콘 삭제) -->
+                <label id="pf-ebook-wrap" style="display:inline-flex; align-items:center; gap:6px; font-size:12.5px; font-weight:700; color:${postForm.isEbook ? 'var(--accent)' : 'var(--ink-sub)'}; cursor:pointer; user-select:none; margin-left:auto;">
+                  <input type="checkbox" id="pf-isEbook" ${postForm.isEbook ? 'checked' : ''} style="width:16px; height:16px; accent-color:var(--accent); cursor:pointer;">
+                  <span>이북으로 읽음</span>
+                </label>
+              </div>
+            ` : ''}
 
             <!-- 별점 선택 (리뷰 선택 시) -->
             ${postForm.memoType === 'REVIEW' ? `
@@ -5091,22 +5368,22 @@ function renderModal() {
             <!-- 텍스트 내용 작성 영역 (문장 유형일 때는 인용 문장과 내 감상을 구별) -->
             ${(!postForm.memoType || postForm.memoType === 'QUOTE') ? `
               <label class="form-label" style="font-weight:700; font-size:12.5px; margin-bottom:6px; display:block; color:var(--ink-main);">📖 책 속 인용 문장</label>
-              <textarea id="pf-text" style="width:100%; height:85px; padding:12px; font-size:14px; border:1px solid var(--line-strong); border-radius:3px; background:var(--paper-bg); color:var(--ink-main); resize:none; box-sizing:border-box; margin-bottom:12px;" 
+              <textarea id="pf-text" style="width:100%; height:140px; padding:12px; font-size:14px; line-height:1.6; border:1px solid var(--line-strong); border-radius:6px; background:var(--paper-bg); color:var(--ink-main); resize:vertical; box-sizing:border-box; margin-bottom:12px;" 
                         placeholder="책에서 인상 깊었던 문장을 입력하세요...">${esc(postForm.text || '')}</textarea>
 
               <label class="form-label" style="font-weight:700; font-size:12.5px; margin-bottom:6px; display:block; color:var(--ink-main);">💭 내 생각 / 감상 (선택)</label>
-              <textarea id="pf-review" style="width:100%; height:75px; padding:12px; font-size:14px; border:1px solid var(--line-strong); border-radius:3px; background:var(--paper-bg); color:var(--ink-main); resize:none; box-sizing:border-box; margin-bottom:14px;" 
+              <textarea id="pf-review" style="width:100%; height:85px; padding:12px; font-size:14px; line-height:1.5; border:1px solid var(--line-strong); border-radius:6px; background:var(--paper-bg); color:var(--ink-main); resize:vertical; box-sizing:border-box; margin-bottom:14px;" 
                         placeholder="이 문장에 대한 내 생각이나 느낀 점을 자유롭게 적어보세요...">${esc(postForm.review || '')}</textarea>
             ` : `
               <label class="form-label" style="font-weight:700; font-size:12.5px; margin-bottom:6px; display:block; color:var(--ink-main);">📝 감상 / 내용 작성</label>
-              <textarea id="pf-text" style="width:100%; height:110px; padding:12px; font-size:14px; border:1px solid var(--line-strong); border-radius:3px; background:var(--paper-bg); color:var(--ink-main); resize:none; box-sizing:border-box; margin-bottom:14px;" 
+              <textarea id="pf-text" style="width:100%; height:140px; padding:12px; font-size:14px; line-height:1.6; border:1px solid var(--line-strong); border-radius:6px; background:var(--paper-bg); color:var(--ink-main); resize:vertical; box-sizing:border-box; margin-bottom:14px;" 
                         placeholder="${getPlaceholderText(postForm.memoType)}">${esc(postForm.text || '')}</textarea>
             `}
 
-            <!-- 스포일러 토글 -->
-            <div class="toggle-row" style="margin-bottom:18px;">
+            <!-- 스포일러 포함 토글 스위치 (체크박스 제거) -->
+            <div class="toggle-row" id="pf-spoiler-wrap" style="margin-bottom:18px;">
               <div>
-                <div style="font-weight:700; font-size:13px; color:var(--ink-main);">🛡 스포일러 포함</div>
+                <div style="font-weight:700; font-size:13.5px; color:var(--ink-main);">🛡️ 스포일러 포함</div>
                 <div class="form-hint" style="font-size:11.5px; color:var(--ink-muted);">스포일러가 있는 경우 체크해 주세요.</div>
               </div>
               <div class="switch ${postForm.spoiler ? 'on' : ''}" id="pf-spoiler"></div>
@@ -5140,18 +5417,113 @@ function renderModal() {
       };
     });
 
-    const sw = document.getElementById('pf-spoiler');
-    if (sw) sw.onclick = () => {
-      saveModalState();
-      postForm.spoiler = !postForm.spoiler;
-      renderModal();
-    };
+    const spoilerWrap = document.getElementById('pf-spoiler-wrap');
+    if (spoilerWrap) {
+      spoilerWrap.onclick = (e) => {
+        saveModalState();
+        postForm.spoiler = !postForm.spoiler;
+        renderModal();
+      };
+    }
+
+    const ebookWrap = document.getElementById('pf-ebook-wrap');
+    if (ebookWrap) {
+      ebookWrap.onclick = (e) => {
+        saveModalState();
+        postForm.isEbook = !postForm.isEbook;
+        renderModal();
+      };
+    }
 
     document.getElementById('pf-submit').onclick = () => submitPost(contentId);
     return;
   }
 
+  if (state.modal.type === 'reportPost') {
+    const postId = state.modal.postId;
+    const post = db.posts ? db.posts.find(x => x.id === postId) : null;
+    const snippet = post ? (post.text || post.review || '독서 기록') : '독서 기록';
 
+    root.innerHTML = `
+      <div class="modal-backdrop top-modal" id="modalBackdrop">
+        <div class="modal-sheet" id="modalSheet" style="max-width:480px; margin:0 auto; border-radius:16px 16px 0 0;">
+          <div class="modal-handle"></div>
+          <div class="modal-header" style="padding-top:10px; padding-bottom:8px;">
+            <div class="title" style="font-weight:800; font-size:16px; display:flex; align-items:center; gap:6px; color:#DC2626;">
+              <span>🚨 게시글 신고하기</span>
+            </div>
+            <button class="close-btn" id="modalClose" aria-label="닫기">✕</button>
+          </div>
+          <div class="modal-body" style="padding:14px 20px 24px;">
+            
+            <!-- 신고 대상 기록 요약 뷰 -->
+            <div style="background:var(--paper-bg); border:1px solid var(--line-subtle); border-radius:8px; padding:12px; margin-bottom:16px; font-size:13px; color:var(--ink-sub); line-height:1.5;">
+              <div style="font-weight:700; color:var(--ink-main); margin-bottom:4px; font-size:12px;">📌 신고 대상 게시글:</div>
+              <div style="font-family:'Noto Serif KR', serif; font-style:italic; word-break:break-all;">"${esc(snippet.slice(0, 80))}${snippet.length > 80 ? '...' : ''}"</div>
+            </div>
+
+            <!-- 신고 사유 선택 -->
+            <label class="form-label" style="font-weight:700; font-size:13px; margin-bottom:8px; display:block; color:var(--ink-main);">신고 사유를 선택해 주세요</label>
+            <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:16px;">
+              <label style="display:flex; align-items:center; gap:10px; padding:10px 12px; background:var(--card-bg); border:1px solid var(--line-strong); border-radius:8px; cursor:pointer; font-size:13px; font-weight:600; color:var(--ink-main);">
+                <input type="radio" name="reportReason" value="스포일러 미표시" checked style="accent-color:#DC2626;">
+                <span>🛡️ 스포일러 미표시 (결말/주요 스포일러 노출)</span>
+              </label>
+              <label style="display:flex; align-items:center; gap:10px; padding:10px 12px; background:var(--card-bg); border:1px solid var(--line-strong); border-radius:8px; cursor:pointer; font-size:13px; font-weight:600; color:var(--ink-main);">
+                <input type="radio" name="reportReason" value="부적절한 언어 및 욕설" style="accent-color:#DC2626;">
+                <span>🤬 부적절한 언어, 욕설, 혐오 표현</span>
+              </label>
+              <label style="display:flex; align-items:center; gap:10px; padding:10px 12px; background:var(--card-bg); border:1px solid var(--line-strong); border-radius:8px; cursor:pointer; font-size:13px; font-weight:600; color:var(--ink-main);">
+                <input type="radio" name="reportReason" value="불법 광고 및 도배" style="accent-color:#DC2626;">
+                <span>📢 불법 광고, 상업적 홍보, 중복 도배글</span>
+              </label>
+              <label style="display:flex; align-items:center; gap:10px; padding:10px 12px; background:var(--card-bg); border:1px solid var(--line-strong); border-radius:8px; cursor:pointer; font-size:13px; font-weight:600; color:var(--ink-main);">
+                <input type="radio" name="reportReason" value="기타 사유" style="accent-color:#DC2626;">
+                <span>✍️ 기타 사유 (직접 입력)</span>
+              </label>
+            </div>
+
+            <!-- 상세 사유 입력란 -->
+            <label class="form-label" style="font-weight:700; font-size:12.5px; margin-bottom:6px; display:block; color:var(--ink-main);">상세 사유 설명 (선택)</label>
+            <textarea id="reportDetailText" style="width:100%; height:75px; padding:10px 12px; font-size:13px; border:1px solid var(--line-strong); border-radius:6px; background:var(--paper-bg); color:var(--ink-main); resize:none; box-sizing:border-box; margin-bottom:18px;" placeholder="신고하시는 구체적인 이유나 상황을 적어주시면 검토에 큰 도움이 됩니다..."></textarea>
+
+            <button class="btn full" id="submitReportBtn" style="padding:12px; font-size:14.5px; font-weight:800; background:#DC2626; color:#FFF; border:none; border-radius:6px; cursor:pointer;">🚨 신고 접수하기</button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    requestAnimationFrame(() => document.getElementById('modalBackdrop')?.classList.add('show'));
+    document.getElementById('modalClose').onclick = closeModal;
+    document.getElementById('modalBackdrop').onclick = e => { if (e.target.id === 'modalBackdrop') closeModal(); };
+    
+    document.getElementById('submitReportBtn').onclick = () => {
+      const selectedRadio = document.querySelector('input[name="reportReason"]:checked');
+      let reasonCategory = selectedRadio ? selectedRadio.value : '부적절한 내용';
+      const detail = (document.getElementById('reportDetailText').value || '').trim();
+      const finalReason = detail ? `${reasonCategory} (${detail})` : reasonCategory;
+
+      if (!db.reports) db.reports = [];
+      db.reports.unshift({
+        id: 'rep_' + Date.now(),
+        targetType: 'post',
+        targetId: postId,
+        targetSnippet: snippet,
+        reporterName: currentUser ? currentUser.name : '익명 수집가',
+        targetAuthorName: post ? (post.nickname || '익명') : '익명',
+        targetAuthorId: post ? (post.userId || 'u_unknown') : 'u_unknown',
+        reason: finalReason,
+        status: 'pending',
+        createdAt: Date.now()
+      });
+      if (post) post.reportsCount = (post.reportsCount || 0) + 1;
+      saveDB();
+      closeModal();
+      toast('⚡ 신고가 접수되었습니다. 관리자 센터에서 검토 후 조치됩니다.');
+      render();
+    };
+    return;
+  }
 
   if (state.modal.type === 'notifications') {
     const notificationsList = [
@@ -5652,8 +6024,9 @@ function submitPost(contentId) {
       existingPost.review = isQuote ? review : (review || text);
       existingPost.rating = mType === 'REVIEW' ? (postForm.rating || 0) : 0;
       existingPost.spoiler = !!postForm.spoiler;
+      existingPost.isEbook = !!postForm.isEbook;
       saveDB();
-      postForm = { memoType: 'QUOTE', page: '', text: '', review: '', rating: 0, spoiler: false };
+      postForm = { memoType: 'QUOTE', page: '', text: '', review: '', rating: 0, spoiler: false, isEbook: false };
       toast('독서 기록을 수정했습니다!');
       closeModal();
       render();
@@ -5670,6 +6043,7 @@ function submitPost(contentId) {
     review: isQuote ? review : (review || text),
     rating: mType === 'REVIEW' ? (postForm.rating || 0) : 0,
     spoiler: postForm.spoiler || false,
+    isEbook: !!postForm.isEbook,
     nickname: '나',
     mine: true,
     likes: 0,
@@ -5677,7 +6051,7 @@ function submitPost(contentId) {
   });
 
   saveDB();
-  postForm = { memoType: 'QUOTE', page: '', text: '', review: '', rating: 0, spoiler: false };
+  postForm = { memoType: 'QUOTE', page: '', text: '', review: '', rating: 0, spoiler: false, isEbook: false };
   toast('독서 기록이 저장되었습니다!');
   closeModal();
   render();
@@ -5739,9 +6113,7 @@ function bindPostCardEvents() {
     el.onclick = (e) => {
       e.stopPropagation();
       state.openCardMenuId = null;
-      if (confirm('이 독서 기록을 신고하시겠습니까? 관리자 검토 후 처리됩니다.')) {
-        toast('신고가 접수되었습니다.');
-      }
+      openModal({ type: 'reportPost', postId: el.dataset.reportpost });
     };
   });
 
@@ -5778,7 +6150,8 @@ function bindPostCardEvents() {
           text: isQuote ? (p.text || '') : '',
           review: isQuote ? (p.review || '') : (p.review || p.text || ''),
           rating: p.rating || 0,
-          spoiler: !!p.spoiler
+          spoiler: !!p.spoiler,
+          isEbook: !!p.isEbook
         };
         openModal({ type: 'post', contentId: p.contentId, editPostId: p.id });
       }
@@ -5972,7 +6345,26 @@ function attachEvents(ov) {
   document.querySelectorAll('[data-reportcol]').forEach(el => {
     el.onclick = (e) => {
       e.stopPropagation();
-      toast('신고가 접수되었습니다.');
+      const colId = el.dataset.reportcol;
+      const col = db.collections ? db.collections.find(c => c.id === colId) : null;
+      const reason = prompt('이 문장 수집함을 신고하시는 사유를 입력해주세요:', '부적절한 컬렉션 내용');
+      if (reason) {
+        if (!db.reports) db.reports = [];
+        db.reports.unshift({
+          id: 'rep_' + Date.now(),
+          targetType: 'collection',
+          targetId: colId,
+          targetSnippet: col ? col.name : '문장 수집함',
+          reporterName: currentUser ? currentUser.name : '익명 수집가',
+          targetAuthorName: '작성자',
+          targetAuthorId: 'u_unknown',
+          reason: reason,
+          status: 'pending',
+          createdAt: Date.now()
+        });
+        saveDB();
+        toast('⚡ 신고가 접수되었습니다. 관리자 검토 후 조치됩니다.');
+      }
     };
   });
 
@@ -6978,6 +7370,17 @@ if (typeof initAuthObserver === 'function') {
 }
 if (typeof syncFromSupabase === 'function') {
   syncFromSupabase();
+}
+
+// Floating Action Button (FAB) Click Handler: 해당 도서 컨텐츠의 독서 기록 작성
+const fabBtn = document.getElementById('floatingWriteBtn');
+if (fabBtn) {
+  fabBtn.onclick = () => {
+    const contentId = fabBtn.dataset.contentId;
+    if (contentId) {
+      openModal({ type: 'post', contentId: contentId });
+    }
+  };
 }
 </script>
 </body>
