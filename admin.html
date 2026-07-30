@@ -1,0 +1,2361 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>문장수집가 — 관리자 센터 (Admin Dashboard)</title>
+  <meta name="description" content="문장수집가 통합 관리자 센터 - 책 정보 수정/삭제, 신고 모니터링, 회원 관리 및 통계 대시보드">
+  
+  <!-- Fonts & Chart.js CDN -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Noto+Sans+KR:wght@400;500;700;800;900&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    :root {
+      --bg-dark: #0F172A;
+      --card-dark: #1E293B;
+      --card-border: #334155;
+      --text-main: #F8FAFC;
+      --text-muted: #94A3B8;
+      --accent-primary: #6366F1;
+      --accent-hover: #4F46E5;
+      --accent-orange: #F59E0B;
+      --accent-green: #10B981;
+      --accent-red: #EF4444;
+      --accent-purple: #8B5CF6;
+      --paper-bg: #0F172A;
+      --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
+      --radius: 10px;
+    }
+
+    [data-theme="light"] {
+      --bg-dark: #F8F6F2;
+      --card-dark: #FFFFFF;
+      --card-border: #E2E8F0;
+      --text-main: #1E293B;
+      --text-muted: #64748B;
+      --accent-primary: #4F46E5;
+      --accent-hover: #4338CA;
+      --accent-orange: #D97706;
+      --accent-green: #059669;
+      --accent-red: #DC2626;
+      --accent-purple: #7C3AED;
+      --paper-bg: #F1F5F9;
+      --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Inter', 'Noto Sans KR', sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    /* Layout Structure */
+    .admin-wrapper {
+      display: flex;
+      width: 100%;
+      min-height: 100vh;
+    }
+
+    /* Sidebar Navigation */
+    .sidebar {
+      width: 260px;
+      background-color: var(--card-dark);
+      border-right: 1px solid var(--card-border);
+      display: flex;
+      flex-direction: column;
+      padding: 20px 16px;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      flex-shrink: 0;
+      z-index: 50;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 8px 24px 8px;
+      border-bottom: 1px solid var(--card-border);
+      margin-bottom: 20px;
+    }
+
+    .brand-icon {
+      width: 38px;
+      height: 38px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, var(--accent-primary), var(--accent-purple));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+    }
+
+    .brand-title {
+      font-weight: 800;
+      font-size: 16px;
+      color: var(--text-main);
+      letter-spacing: -0.3px;
+    }
+
+    .brand-sub {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    .nav-menu {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      flex: 1;
+      overflow-y: auto;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 11px 14px;
+      border-radius: var(--radius);
+      color: var(--text-muted);
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 13.5px;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      width: 100%;
+      text-align: left;
+      transition: all 0.2s ease;
+    }
+
+    .nav-item:hover {
+      background-color: rgba(99, 102, 241, 0.1);
+      color: var(--accent-primary);
+    }
+
+    .nav-item.active {
+      background: linear-gradient(90deg, var(--accent-primary), var(--accent-hover));
+      color: #FFFFFF;
+      box-shadow: 0 4px 14px rgba(79, 70, 229, 0.35);
+    }
+
+    .nav-label {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .nav-badge {
+      padding: 2px 7px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 700;
+      background-color: var(--card-border);
+      color: var(--text-main);
+    }
+
+    .nav-badge.danger {
+      background-color: var(--accent-red);
+      color: #FFFFFF;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0% { opacity: 1; }
+      50% { opacity: 0.6; }
+      100% { opacity: 1; }
+    }
+
+    .sidebar-footer {
+      padding-top: 16px;
+      border-top: 1px solid var(--card-border);
+    }
+
+    .back-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      padding: 10px;
+      border-radius: var(--radius);
+      background-color: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--card-border);
+      color: var(--text-main);
+      text-decoration: none;
+      font-weight: 700;
+      font-size: 12.5px;
+      transition: all 0.2s ease;
+    }
+
+    .back-btn:hover {
+      background-color: rgba(255, 255, 255, 0.1);
+      border-color: var(--text-muted);
+    }
+
+    /* Main Content */
+    .main-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      overflow-x: hidden;
+    }
+
+    /* Top Bar */
+    .top-bar {
+      height: 70px;
+      background-color: var(--card-dark);
+      border-bottom: 1px solid var(--card-border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 28px;
+      position: sticky;
+      top: 0;
+      z-index: 40;
+    }
+
+    .header-title h1 {
+      font-size: 18px;
+      font-weight: 800;
+      color: var(--text-main);
+    }
+
+    .header-title p {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .top-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .live-status {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--accent-green);
+      background: rgba(16, 185, 129, 0.12);
+      padding: 5px 12px;
+      border-radius: 20px;
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: var(--accent-green);
+      animation: blink 1.5s infinite;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    /* Button Styles */
+    .btn {
+      padding: 8px 14px;
+      border-radius: var(--radius);
+      font-size: 12.5px;
+      font-weight: 700;
+      cursor: pointer;
+      border: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+    }
+
+    .btn-primary {
+      background-color: var(--accent-primary);
+      color: #FFFFFF;
+    }
+    .btn-primary:hover {
+      background-color: var(--accent-hover);
+      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+    }
+
+    .btn-secondary {
+      background-color: rgba(255, 255, 255, 0.08);
+      color: var(--text-main);
+      border: 1px solid var(--card-border);
+    }
+    .btn-secondary:hover {
+      background-color: rgba(255, 255, 255, 0.15);
+    }
+
+    .btn-danger {
+      background-color: var(--accent-red);
+      color: #FFFFFF;
+    }
+    .btn-danger:hover {
+      background-color: #DC2626;
+      box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+    }
+
+    .btn-success {
+      background-color: var(--accent-green);
+      color: #FFFFFF;
+    }
+    .btn-success:hover {
+      background-color: #059669;
+    }
+
+    .btn-warning {
+      background-color: var(--accent-orange, #F59E0B);
+      color: #FFFFFF;
+    }
+    .btn-warning:hover {
+      background-color: #D97706;
+      box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+    }
+
+    .btn-sm {
+      padding: 5px 9px;
+      font-size: 11.5px;
+      border-radius: 6px;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    /* Tab Container */
+    .view-container {
+      padding: 24px 28px;
+      flex: 1;
+    }
+
+    /* Metrics Grid */
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .metric-card {
+      background-color: var(--card-dark);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius);
+      padding: 18px 20px;
+      box-shadow: var(--shadow);
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.2s ease, border-color 0.2s ease;
+    }
+
+    .metric-card:hover {
+      transform: translateY(-2px);
+      border-color: var(--accent-primary);
+    }
+
+    .metric-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .metric-value {
+      font-size: 26px;
+      font-weight: 900;
+      color: var(--text-main);
+      letter-spacing: -0.5px;
+    }
+
+    .metric-sub {
+      font-size: 11.5px;
+      margin-top: 6px;
+      color: var(--text-muted);
+    }
+
+    .metric-sub.up { color: var(--accent-green); font-weight: 700; }
+    .metric-sub.alert { color: var(--accent-red); font-weight: 700; }
+
+    /* Chart Grid */
+    .charts-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 20px;
+      margin-bottom: 24px;
+    }
+
+    @media (max-width: 1024px) {
+      .charts-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .chart-card {
+      background-color: var(--card-dark);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius);
+      padding: 20px;
+      box-shadow: var(--shadow);
+    }
+
+    .chart-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--card-border);
+    }
+
+    .chart-header h3 {
+      font-size: 14.5px;
+      font-weight: 800;
+      color: var(--text-main);
+    }
+
+    .chart-body {
+      position: relative;
+      height: 240px;
+    }
+
+    /* Table & Data Controls */
+    .filter-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      margin-bottom: 18px;
+      flex-wrap: wrap;
+    }
+
+    .search-input-wrap {
+      position: relative;
+      flex: 1;
+      min-width: 220px;
+    }
+
+    .search-input {
+      width: 100%;
+      padding: 9px 14px 9px 36px;
+      background-color: var(--card-dark);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius);
+      color: var(--text-main);
+      font-size: 13px;
+      outline: none;
+    }
+
+    .search-input:focus {
+      border-color: var(--accent-primary);
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+      font-size: 14px;
+    }
+
+    .select-filter {
+      padding: 9px 12px;
+      background-color: var(--card-dark);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius);
+      color: var(--text-main);
+      font-size: 13px;
+      outline: none;
+      cursor: pointer;
+    }
+
+    .data-table-card {
+      background-color: var(--card-dark);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .table-responsive {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+
+    th {
+      background-color: rgba(255, 255, 255, 0.03);
+      padding: 12px 16px;
+      font-size: 12px;
+      font-weight: 800;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      border-bottom: 1px solid var(--card-border);
+    }
+
+    td {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--card-border);
+      font-size: 13px;
+      color: var(--text-main);
+      vertical-align: middle;
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    tr:hover td {
+      background-color: rgba(255, 255, 255, 0.02);
+    }
+
+    /* Badges & Tags */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 8px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    .badge-primary { background: rgba(99, 102, 241, 0.15); color: var(--accent-primary); }
+    .badge-success { background: rgba(16, 185, 129, 0.15); color: var(--accent-green); }
+    .badge-warning { background: rgba(245, 158, 11, 0.15); color: var(--accent-orange); }
+    .badge-danger { background: rgba(239, 68, 68, 0.15); color: var(--accent-red); }
+    .badge-muted { background: rgba(148, 163, 184, 0.15); color: var(--text-muted); }
+
+    /* Modal Overlay */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background-color: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(4px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: 20px;
+    }
+
+    .modal-box {
+      background-color: var(--card-dark);
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      width: 100%;
+      max-width: 580px;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+      padding: 24px;
+    }
+
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--card-border);
+    }
+
+    .modal-header h3 {
+      font-size: 16.5px;
+      font-weight: 800;
+    }
+
+    .close-modal-btn {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 20px;
+      cursor: pointer;
+    }
+
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 12px;
+      font-weight: 800;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+
+    .form-control {
+      width: 100%;
+      padding: 10px 12px;
+      background-color: var(--paper-bg);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius);
+      color: var(--text-main);
+      font-size: 13px;
+      outline: none;
+    }
+
+    .form-control:focus {
+      border-color: var(--accent-primary);
+    }
+
+    textarea.form-control {
+      resize: vertical;
+      min-height: 80px;
+    }
+
+    .form-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: 24px;
+      padding-top: 16px;
+      border-top: 1px solid var(--card-border);
+    }
+
+    /* Toast Notification */
+    .toast-container {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      z-index: 2000;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .toast {
+      background-color: var(--card-dark);
+      border: 1px solid var(--accent-primary);
+      color: var(--text-main);
+      padding: 12px 18px;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      font-weight: 700;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      animation: slideIn 0.3s ease;
+    }
+
+    @keyframes slideIn {
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+  <div class="admin-wrapper">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-icon">👑</div>
+        <div>
+          <div class="brand-title">문장수집가</div>
+          <div class="brand-sub">관리자 센터 v2.0</div>
+        </div>
+      </div>
+
+      <nav class="nav-menu">
+        <button class="nav-item active" data-tab="dashboard">
+          <span class="nav-label"><span>📊</span> 대시보드 & 통계</span>
+        </button>
+        <button class="nav-item" data-tab="books">
+          <span class="nav-label"><span>📚</span> 도서 정보 관리</span>
+          <span class="nav-badge" id="badge-books">0</span>
+        </button>
+        <button class="nav-item" data-tab="reports">
+          <span class="nav-label"><span>🚨</span> 신고 모니터링</span>
+          <span class="nav-badge danger" id="badge-reports">0</span>
+        </button>
+        <button class="nav-item" data-tab="users">
+          <span class="nav-label"><span>👥</span> 회원 & 계급/차단</span>
+          <span class="nav-badge" id="badge-users">0</span>
+        </button>
+        <button class="nav-item" data-tab="posts">
+          <span class="nav-label"><span>✍️</span> 포스트 & 댓글</span>
+          <span class="nav-badge" id="badge-posts">0</span>
+        </button>
+        <button class="nav-item" data-tab="announcements">
+          <span class="nav-label"><span>📢</span> 공지사항 관리</span>
+        </button>
+        <button class="nav-item" data-tab="settings">
+          <span class="nav-label"><span>⚙️</span> DB 백업 & 감사 로그</span>
+        </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <a href="index.html" class="back-btn">
+          <span>🏠</span> 메인 앱으로 돌아가기
+        </a>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+      <!-- Top Bar Header -->
+      <header class="top-bar">
+        <div class="header-title">
+          <h1 id="view-title">대시보드 & 종합 통계</h1>
+          <p id="view-desc">플랫폼 핵심 활동 데이터, 도서, 회원 및 신고 처리 상태를 실시간 감시합니다.</p>
+        </div>
+        <div class="top-actions">
+          <div class="live-status">
+            <span class="status-dot"></span> Realtime Sync
+          </div>
+          <button class="btn btn-secondary" onclick="renderCurrentView()">🔄 데이터 갱신</button>
+          <button class="btn btn-secondary" id="themeToggleBtn" onclick="toggleTheme()">🌙 테마 변경</button>
+        </div>
+      </header>
+
+      <!-- View Container -->
+      <div class="view-container" id="viewContainer">
+        <!-- Rendered dynamically by JavaScript -->
+      </div>
+    </main>
+  </div>
+
+  <!-- Modal Target Area -->
+  <div id="modalTarget"></div>
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script>
+    /* ---------- Data Repository & LocalStorage Sync ---------- */
+    const DB_KEY = 'jigeumini_db_v9';
+    let db = loadDB();
+
+    function loadDB() {
+      const raw = localStorage.getItem(DB_KEY);
+      if (raw) {
+        try {
+          const parsed = JSON.parse(raw);
+          if (parsed && Array.isArray(parsed.contents)) {
+            ensureInitialSchema(parsed);
+            return parsed;
+          }
+        } catch (e) {}
+      }
+      return initDemoDB();
+    }
+
+    /* ---------- Supabase Database Connection & Sync ---------- */
+    const SUPABASE_URL = 'https://eypvienfpglkdhzxmtet.supabase.co';
+    const SUPABASE_ANON_KEY = 'sb_publishable_r77QHYdEBQ_G6g5m67EPaQ_RIeCFwxO';
+    let supabaseClient = null;
+
+    if (window.supabase && SUPABASE_URL.startsWith('https://')) {
+      try {
+        supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        console.log('⚡ Admin Supabase Client Initialized!');
+      } catch (e) {
+        console.warn('Supabase initialization error:', e);
+      }
+    }
+
+    function saveDB() {
+      localStorage.setItem(DB_KEY, JSON.stringify(db));
+      updateNavBadges();
+      if (typeof syncToSupabase === 'function') syncToSupabase();
+    }
+
+    async function syncToSupabase() {
+      if (!supabaseClient || !db) return;
+      try {
+        if (db.contents && db.contents.length > 0) {
+          const bookRows = db.contents.map(c => ({
+            id: String(c.id),
+            type: c.type || 'BOOK',
+            title: c.title || '',
+            creator: c.creator || c.authors || '',
+            publisher: c.publisher || '',
+            isbn: c.isbn || '',
+            cover: c.cover || c.thumbnail || null,
+            genre: c.genre || '소설',
+            total_page: c.totalPoint || c.page_count || null,
+            rating: c.rating || 0,
+            source_provider: c.sourceProvider || c.source || 'KAKAO'
+          }));
+          await supabaseClient.from('books').upsert(bookRows, { onConflict: 'id' });
+        }
+
+        if (db.posts && db.posts.length > 0) {
+          const postRows = db.posts.map(p => ({
+            id: String(p.id),
+            book_id: String(p.contentId),
+            point: p.point || null,
+            memo_type: p.memoType || 'QUOTE',
+            text: p.text || '',
+            review: p.review || '',
+            rating: p.rating || 0,
+            spoiler: !!p.spoiler,
+            likes: p.likes || 0
+          }));
+          await supabaseClient.from('posts').upsert(postRows, { onConflict: 'id' });
+        }
+
+        if (db.comments && db.comments.length > 0) {
+          const commentRows = db.comments.map(cm => ({
+            id: String(cm.id),
+            post_id: String(cm.postId),
+            text: cm.text || '',
+            nickname: cm.nickname || '익명'
+          }));
+          await supabaseClient.from('comments').upsert(commentRows, { onConflict: 'id' });
+        }
+      } catch (e) {
+        console.warn('Supabase sync warning:', e);
+      }
+    }
+
+    async function syncFromSupabase() {
+      if (!supabaseClient || !db) return;
+      try {
+        const { data: booksData } = await supabaseClient.from('books').select('*');
+        if (booksData && booksData.length > 0) {
+          booksData.forEach(b => {
+            const idx = db.contents.findIndex(c => String(c.id) === String(b.id));
+            const item = {
+              id: b.id,
+              type: b.type || 'BOOK',
+              title: b.title,
+              creator: b.creator,
+              publisher: b.publisher,
+              isbn: b.isbn,
+              cover: b.cover,
+              genre: b.genre || '소설',
+              totalPoint: b.total_page,
+              rating: b.rating,
+              sourceProvider: b.source_provider
+            };
+            if (idx >= 0) db.contents[idx] = { ...db.contents[idx], ...item };
+            else db.contents.push(item);
+          });
+        }
+
+        const { data: postsData } = await supabaseClient.from('posts').select('*');
+        if (postsData && postsData.length > 0) {
+          postsData.forEach(p => {
+            const idx = db.posts.findIndex(existing => String(existing.id) === String(p.id));
+            const item = {
+              id: p.id,
+              contentId: p.book_id,
+              point: p.point,
+              memoType: p.memo_type || 'QUOTE',
+              text: p.text,
+              review: p.review,
+              rating: p.rating,
+              spoiler: p.spoiler,
+              nickname: p.nickname || '익명 수집가',
+              mine: false,
+              likes: p.likes || 0,
+              comments: 0,
+              createdAt: new Date(p.created_at || Date.now()).getTime()
+            };
+            if (idx >= 0) db.posts[idx] = { ...db.posts[idx], ...item };
+            else db.posts.push(item);
+          });
+        }
+
+        const { data: commentsData } = await supabaseClient.from('comments').select('*');
+        if (commentsData && commentsData.length > 0) {
+          if (!db.comments) db.comments = [];
+          commentsData.forEach(cm => {
+            const idx = db.comments.findIndex(existing => String(existing.id) === String(cm.id));
+            const item = {
+              id: cm.id,
+              postId: cm.post_id,
+              text: cm.text,
+              nickname: cm.nickname || '익명',
+              createdAt: new Date(cm.created_at || Date.now()).getTime()
+            };
+            if (idx >= 0) db.comments[idx] = { ...db.comments[idx], ...item };
+            else db.comments.push(item);
+          });
+        }
+
+        localStorage.setItem(DB_KEY, JSON.stringify(db));
+        if (typeof renderCurrentView === 'function') renderCurrentView();
+      } catch(e) {
+        console.warn('Supabase fetch error:', e);
+      }
+    }
+
+    function generateRichDemoDB() {
+      const now = Date.now();
+      const DAY = 86400000;
+      const HOUR = 3600000;
+
+      return {
+        contents: [
+          { id: 'b1', type: 'BOOK', title: '데미안', creator: '헤르만 헤세', publisher: '민음사', cover: 'https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=400', genre: '소설', totalPoint: 240, rating: 4.8, readerCount: 142, isbn: '9788937460449', createdAt: now - DAY * 30, description: '자기 자신에게로 이르는 길을 찾아가는 청년 싱클레어의 고뇌와 성장을 다룬 헤르만 헤세의 명작.' },
+          { id: 'b2', type: 'BOOK', title: '아몬드', creator: '손원평', publisher: '창비', cover: 'https://images.unsplash.com/photo-1512820790803-83ca734da794?w=400', genre: '소설', totalPoint: 264, rating: 4.9, readerCount: 198, isbn: '9788936434267', createdAt: now - DAY * 25, description: '알렉시티미아(감정 표현 불능증)를 앓는 소년 선윤재의 성장과 감정의 아름다움을 그린 소설.' },
+          { id: 'b3', type: 'BOOK', title: '사피엔스', creator: '유발 하라리', publisher: '김영사', cover: 'https://images.unsplash.com/photo-1589829085413-56de8ae18c73?w=400', genre: '인문학', totalPoint: 636, rating: 4.7, readerCount: 310, isbn: '9788934972464', createdAt: now - DAY * 20, description: '인류의 기원에서부터 인공지능 시대까지, 인간이 지구의 지배자가 된 과정을 파격적 시각으로 파헤친 거작.' },
+          { id: 'b4', type: 'BOOK', title: '클린 코드 (Clean Code)', creator: '로버트 C. 마틴', publisher: '인사이트', cover: 'https://images.unsplash.com/photo-1532012197267-da84d127e765?w=400', genre: 'IT/컴퓨터/AI', totalPoint: 584, rating: 4.9, readerCount: 85, isbn: '9788966260959', createdAt: now - DAY * 18, description: '애자일 소프트웨어 혁명의 선구자가 제시하는 읽기 쉽고 유지보수하기 쉬운 우수한 코드 작성 가이드.' },
+          { id: 'b5', type: 'BOOK', title: '어린 왕자', creator: '앙투안 드 생텍쥐페리', publisher: '열린책들', cover: 'https://images.unsplash.com/photo-1476275466078-4007374efbbe?w=400', genre: '소설', totalPoint: 160, rating: 5.0, readerCount: 420, isbn: '9788932917245', createdAt: now - DAY * 15, description: '어른들을 위한 아름다운 동화. 여우와의 대화를 통해 가장 중요한 것은 눈에 보이지 않는다는 진리를 전한다.' },
+          { id: 'b6', type: 'BOOK', title: '도파민 독식 사회', creator: '애나 렘키', publisher: '흐름출판', cover: 'https://images.unsplash.com/photo-1506880018603-83d5b814b5a6?w=400', genre: '자기계발', totalPoint: 320, rating: 4.6, readerCount: 115, isbn: '9788959897100', createdAt: now - DAY * 12, description: '중독의 시대를 살아가는 현대인을 위해 쾌락과 통증의 뇌과학적 메커니즘을 밝히고 삶의 균형을 되찾는 법칙.' },
+          { id: 'b7', type: 'BOOK', title: '돈의 속성', creator: '김승호', publisher: '스노우폭스북스', cover: 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=400', genre: '경제/경영/재테크', totalPoint: 400, rating: 4.8, readerCount: 280, isbn: '9791188331796', createdAt: now - DAY * 10, description: '자수성가한 스노우폭스 회장의 돈에 대한 남다른 철학과 부자가 되는 75가지 원칙.' },
+          { id: 'b8', type: 'BOOK', title: '불편한 편의점', creator: '김호연', publisher: '나무옆의의자', cover: 'https://images.unsplash.com/photo-1543002588-bfa74002ed7e?w=400', genre: '소설', totalPoint: 268, rating: 4.9, readerCount: 350, isbn: '9791161571188', createdAt: now - DAY * 8, description: '청파동 골목길 작은 편의점을 배경으로 힘겨운 시대를 살아가는 이웃들의 삶을 따뜻하고 유쾌하게 그린 힐링 소설.' },
+          { id: 'b9', type: 'BOOK', title: '코스모스', creator: '칼 세이건', publisher: '사이언스북스', cover: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=400', genre: '자연/과학/공학', totalPoint: 700, rating: 4.9, readerCount: 165, isbn: '9788983711892', createdAt: now - DAY * 5, description: '우주의 광대함 속에서 인간 존재의 의미를 묻는 천문학 및 서사시적 과학 명저.' },
+          { id: 'b10', type: 'BOOK', title: '이방인', creator: '알베르 카뮈', publisher: '민음사', cover: 'https://images.unsplash.com/photo-1495640388908-05fa85288e61?w=400', genre: '철학/사상', totalPoint: 280, rating: 4.7, readerCount: 190, isbn: '9788937460364', createdAt: now - DAY * 2, description: '부조리한 세상에 직면한 인간의 고독과 부조리주의 철학을 상징하는 카뮈의 대표작.' }
+        ],
+        myContent: [
+          { contentId: 'b1', status: 'DONE', currentPoint: 240, startDate: '2026.06.01', finishDate: '2026.06.15' },
+          { contentId: 'b2', status: 'ACTIVE', currentPoint: 120, startDate: '2026.07.01' },
+          { contentId: 'b5', status: 'DONE', currentPoint: 160, startDate: '2026.07.10', finishDate: '2026.07.12' },
+          { contentId: 'b4', status: 'ACTIVE', currentPoint: 210, startDate: '2026.07.15' },
+          { contentId: 'b8', status: 'WANT', currentPoint: 0 }
+        ],
+        activeBookId: 'b2',
+        posts: [
+          { id: 'p1', contentId: 'b1', point: 42, memoType: 'QUOTE', text: '새는 알에서 나오기 위해 투쟁한다. 알은 세계다. 태어나려는 자는 하나의 세계를 깨뜨려야 한다.', review: '스스로의 세계를 깨뜨리고 진짜 나를 만나는 진통의 과정. 마음에 가슴 깊이 새겨지는 명문장이다.', rating: 5, nickname: '은지', userId: 'u2', likes: 28, comments: 3, createdAt: now - HOUR * 2 },
+          { id: 'p2', contentId: 'b2', point: 88, memoType: 'THOUGHT', text: '구할 수 없는 인간이란 없다. 단지 구하려는 노력을 포기한 인간이 있을 뿐이다.', review: '타인의 아픔에 타성이 젖어버린 현대 사회에서 진정한 공감의 의미를 묵직하게 되새기게 해준다.', rating: 5, nickname: '민수', userId: 'u3', likes: 19, comments: 1, createdAt: now - HOUR * 5 },
+          { id: 'p3', contentId: 'b5', point: 114, memoType: 'QUOTE', text: '가장 중요한 것은 눈에 보이지 않아. 마음으로 보아야만 분명하게 볼 수 있어.', review: '어릴 때 읽었을 때와 지금 성인이 되어 읽을 때의 무게감이 사뭇 다르다. 여우의 따뜻한 조언.', rating: 5, nickname: '클로이', userId: 'u4', likes: 42, comments: 2, createdAt: now - HOUR * 8 },
+          { id: 'p4', contentId: 'b4', point: 55, memoType: 'SUMMARY', text: '나중은 결코 오지 않는다 (Later equals never).', review: '나중에 리팩토링하겠다는 생각은 결국 기술 부채로 남아 프로젝트를 무너뜨린다. 코드를 작성하는 그 순간 깨끗하게!', rating: 5, nickname: '총괄 관리자', userId: 'u1', likes: 35, comments: 2, createdAt: now - HOUR * 12 },
+          { id: 'p5', contentId: 'b8', point: 210, memoType: 'REVIEW', text: '결국 삶은 관계였고 관계는 소통이었다. 소통은 마음을 열고 귀를 기울이는 것이었다.', review: '힘겨운 밤 편의점의 따뜻한 삼각김밥과 옥수수수염차처럼 마음을 살포시 위로해 주는 고마운 책.', rating: 5, nickname: '글쓰는 수집가', userId: 'u5', likes: 24, comments: 1, createdAt: now - DAY * 1 },
+          { id: 'p6', contentId: 'b3', point: 420, memoType: 'THOUGHT', text: '우리는 상상의 질서 속에서 살아가고 있다. 돈, 국가, 인권, 기업은 모두 우리가 만들어낸 거대한 허구이다.', review: '역사를 바라보는 인류학적 통찰이 경이롭다. 유발 하라리의 날카로운 시각에 몇 번이고 감탄함.', rating: 4, nickname: '민수', userId: 'u3', likes: 16, comments: 0, createdAt: now - DAY * 2 },
+          { id: 'p7', contentId: 'b6', point: 145, memoType: 'SUMMARY', text: '고통과 쾌락은 뇌의 같은 위치에서 시소처럼 작동한다.', review: '스마트폰 숏폼과 끊임없는 자극에 지친 고뇌를 과학적으로 설명해 줌. 디지털 데톡스가 절실하다.', rating: 4, nickname: '새내기 독서가', userId: 'u6', likes: 11, comments: 0, createdAt: now - DAY * 3 },
+          { id: 'p8', contentId: 'b9', point: 320, memoType: 'QUOTE', text: '우주는 우리 안에 있다. 우리는 별들의 물질로 만들어졌다. 우리는 우주가 스스로를 알기 위한 수단이다.', review: '우주의 장엄함과 그 속에서 살아가는 우리의 존엄함을 일깨우는 시적인 문장.', rating: 5, nickname: '은지', userId: 'u2', likes: 31, comments: 0, createdAt: now - DAY * 4 },
+          { id: 'p9', contentId: 'b10', point: 182, memoType: 'QUOTE', text: '오늘 엄마가 죽었다. 아니 어쩌면 어제. 잘 모르겠다.', review: '알베르 카뮈의 첫 문장 중 가장 강렬하고 파격적인 문장. 이 문장 하나로 부조리한 세상으로 들어선다.', rating: 5, nickname: '글쓰는 수집가', userId: 'u5', likes: 37, comments: 2, createdAt: now - HOUR * 3 },
+          { id: 'p10', contentId: 'b5', point: 84, memoType: 'QUOTE', text: '네 장미꽃이 그토록 소중한 것은 네가 그것을 위해 소비한 시간 때문이야.', review: '시간을 기울이고 정성을 쏟은 존재만이 내게 특별해진다는 연대의 진리.', rating: 5, nickname: '은지', userId: 'u2', likes: 45, comments: 3, createdAt: now - HOUR * 4 },
+          { id: 'p11', contentId: 'b8', point: 154, memoType: 'THOUGHT', text: '행복은 나누면 두 배가 되고, 슬픔은 나누면 반이 된다. 편의점 삼각김밥 하나에도 따뜻한 정이 흐른다.', review: '소소하고 조용한 위로가 그리울 때 꺼내 읽고 싶은 따뜻한 이야기.', rating: 5, nickname: '클로이', userId: 'u4', likes: 21, comments: 1, createdAt: now - HOUR * 6 },
+          { id: 'p12', contentId: 'b3', point: 310, memoType: 'SUMMARY', text: '농경혁명은 역사상 최대의 사기였다.', review: '수렵채집인보다 농경민의 삶이 더 많은 노동과 전염병에 노출되었다는 유발 하라리의 도발적 명제.', rating: 4, nickname: '총괄 관리자', userId: 'u1', likes: 29, comments: 0, createdAt: now - HOUR * 9 },
+          { id: 'p13', contentId: 'b9', point: 580, memoType: 'QUOTE', text: '이 작은 점을 보라. 그것은 여기 있다. 그것은 우리의 고향이며, 그것은 우리다.', review: '창백한 푸른 점(Pale Blue Dot) 사진을 보며 칼 세이건이 던진 겸손함과 평화에 관한 시적 묵상.', rating: 5, nickname: '민수', userId: 'u3', likes: 52, comments: 2, createdAt: now - HOUR * 11 },
+          { id: 'p14', contentId: 'b2', point: 140, memoType: 'REVIEW', text: '두려움도 희망도 감정도 배울 수 있다.', review: '윤재가 곤이와 만나며 조금씩 마음의 아몬드를 키워나가는 과정이 뭉클하다.', rating: 5, nickname: '새내기 독서가', userId: 'u6', likes: 18, comments: 0, createdAt: now - HOUR * 14 },
+          { id: 'p15', contentId: 'b4', point: 120, memoType: 'THOUGHT', text: '캠핑장을 떠날 때는 들어왔을 때보다 깨끗하게 놔두어라 (Boy Scout Rule).', review: '코드를 체크인할 때 이전보다 조금이라도 더 정돈되고 깨끗하게 개선해두면 코드베이스는 상하지 않는다.', rating: 5, nickname: '글쓰는 수집가', userId: 'u5', likes: 33, comments: 2, createdAt: now - HOUR * 16 },
+          { id: 'p16', contentId: 'b6', point: 205, memoType: 'QUOTE', text: '고통을 피하려는 시도가 우리를 더 큰 고통으로 몰아넣는다.', review: '불편함과 지루함을 견디는 능력을 잃어버린 현대인들에게 건네는 뇌과학적 처방전.', rating: 4, nickname: '클로이', userId: 'u4', likes: 15, comments: 0, createdAt: now - HOUR * 18 },
+          { id: 'p17', contentId: 'b7', point: 220, memoType: 'SUMMARY', text: '돈은 인격체다. 돈을 귀하게 여기고 사랑하는 사람 곁에 머문다.', review: '돈을 단순히 소비의 수단이 아니라 소중히 대해야 할 인격체로 취급하는 회장님의 독특하고 정직한 자산관.', rating: 5, nickname: '민수', userId: 'u3', likes: 27, comments: 0, createdAt: now - HOUR * 20 },
+          { id: 'p18', contentId: 'b1', point: 110, memoType: 'QUOTE', text: '나는 오직 내 속에서 스스로 우러나오는 것, 바로 그것을 살려 하려 했을 뿐이다. 그것이 왜 그토록 어려웠을까?', review: '타인의 기준이 아닌 진정한 내면의 소리에 귀 기울이는 삶이 왜 이토록 어려운지 뼈아프게 공감함.', rating: 5, nickname: '새내기 독서가', userId: 'u6', likes: 39, comments: 2, createdAt: now - HOUR * 22 },
+          { id: 'p_rep1', contentId: 'b1', point: 235, memoType: 'REVIEW', text: '[스포일러 주의] 싱클레어가 결말 부분에서 싱클레어와 크로머의 구도가...', review: '결말 핵심 전개 및 반전 요소를 경고 없이 전량 기재함.', rating: 1, nickname: '스포왕', userId: 'u8', likes: 0, reportsCount: 3, createdAt: now - DAY * 5 },
+          { id: 'p_rep2', contentId: 'b7', point: 1, memoType: 'QUOTE', text: '불법 도박 사이트 및 스팸 홍보 쿠폰 발급: http://illegal-site.com 접속하세요', review: '불법 광고 링크 및 스팸 도배 문구', rating: 0, nickname: '스팸마왕', userId: 'u7', likes: 0, reportsCount: 8, createdAt: now - DAY * 6 }
+        ],
+        comments: [
+          { id: 'cm1', postId: 'p1', userId: 'u3', nickname: '민수', text: '알을 깨고 나아가는 용기가 필요한 요즘입니다. 깊은 울림이 있네요.', createdAt: now - HOUR * 1 },
+          { id: 'cm1_1', postId: 'p1', userId: 'u2', nickname: '은지', parentId: 'cm1', text: '맞아요 민수님! 고통스럽지만 성장을 위해 꼭 거쳐야 하는 문인 것 같아요.', createdAt: now - HOUR * 0.8 },
+          { id: 'cm1_2', postId: 'p1', userId: 'u5', nickname: '글쓰는 수집가', parentId: 'cm1', text: '저도 삶이 팍팍할 때마다 데미안의 이 구절을 펼쳐보곤 해요 ✨', createdAt: now - HOUR * 0.5 },
+
+          { id: 'cm2', postId: 'p1', userId: 'u4', nickname: '클로이', text: '데미안은 인생에서 세 번은 다시 읽어야 할 책 같아요.', createdAt: now - HOUR * 2 },
+          { id: 'cm3', postId: 'p1', userId: 'u2', nickname: '은지', parentId: 'cm2', text: '맞아요! 20대에 읽을 때와 30대에 읽을 때 느낀 감정이 완전히 달랐습니다.', createdAt: now - HOUR * 1.5 },
+
+          { id: 'cm4', postId: 'p3', userId: 'u5', nickname: '글쓰는 수집가', text: '마음으로 보아야만 분명하게 볼 수 있다는 말이 언제 들어도 참 정갈해요.', createdAt: now - HOUR * 6 },
+          { id: 'cm4_1', postId: 'p3', userId: 'u4', nickname: '클로이', parentId: 'cm4', text: '어린 왕자는 매년 읽을 때마다 마음에 와닿는 문장이 달라지는 마법 같은 책 같아요 🌟', createdAt: now - HOUR * 5 },
+
+          { id: 'cm5', postId: 'p4', userId: 'u2', nickname: '은지', text: '개발자뿐만 아니라 모든 업무 방식에 적용되는 명언이네요!', createdAt: now - HOUR * 10 },
+          { id: 'cm5_1', postId: 'p4', userId: 'u1', nickname: '총괄 관리자', parentId: 'cm5', text: '맞습니다. 할 일을 미루다 보면 결국 작업 부채에 묻히게 되죠!', createdAt: now - HOUR * 9 },
+
+          { id: 'cm9', postId: 'p9', userId: 'u2', nickname: '은지', text: '이방인의 첫 문장은 언제 읽어도 전율이 돋아요.', createdAt: now - HOUR * 2 },
+          { id: 'cm9_1', postId: 'p9', userId: 'u5', nickname: '글쓰는 수집가', parentId: 'cm9', text: '뫼르소의 담담한 어조가 주는 서늘함이 책 전체를 지배하는 것 같습니다.', createdAt: now - HOUR * 1.5 },
+
+          { id: 'cm10', postId: 'p10', userId: 'u3', nickname: '민수', text: '장미꽃에 소비한 시간... 낭비된 시간이 아니라 사랑의 깊이었군요.', createdAt: now - HOUR * 3 },
+          { id: 'cm10_1', postId: 'p10', userId: 'u2', nickname: '은지', parentId: 'cm10', text: '맞아요! 내가 정성을 들인 소중한 사람들과의 관계를 떠올리게 돼요.', createdAt: now - HOUR * 2.5 },
+          { id: 'cm10_2', postId: 'p10', userId: 'u4', nickname: '클로이', parentId: 'cm10', text: '길들인다는 것의 의미를 가장 아름답게 표현한 문장이에요 ❤️', createdAt: now - HOUR * 2 },
+
+          { id: 'cm11', postId: 'p11', userId: 'u5', nickname: '글쓰는 수집가', text: '불편한 편의점 읽고 마음이 무척 몽글몽글해졌었는데 또 읽고 싶네요.', createdAt: now - HOUR * 5 },
+
+          { id: 'cm13', postId: 'p13', userId: 'u1', nickname: '총괄 관리자', text: '칼 세이건의 창백한 푸른 점 연설은 언제 들어도 겸허해집니다.', createdAt: now - HOUR * 10 },
+          { id: 'cm13_1', postId: 'p13', userId: 'u3', nickname: '민수', parentId: 'cm13', text: '우주의 광대함 앞에서 인간의 오만함과 다툼이 얼마나 부질없는지 깨닫게 되네요.', createdAt: now - HOUR * 9 },
+
+          { id: 'cm15', postId: 'p15', userId: 'u6', nickname: '새내기 독서가', text: '보이스카우트 규칙! 코드 리뷰할 때 꼭 명심해야겠어요.', createdAt: now - HOUR * 15 },
+          { id: 'cm15_1', postId: 'p15', userId: 'u5', nickname: '글쓰는 수집가', parentId: 'cm15', text: '작은 변수명 개선 하나만으로도 다음 작업자가 정말 편해지더라고요 👍', createdAt: now - HOUR * 14 },
+
+          { id: 'cm18', postId: 'p18', userId: 'u4', nickname: '클로이', text: '자기 자신으로 사는 것이 세상에서 가장 용기 있는 일인 것 같아요.', createdAt: now - HOUR * 20 },
+          { id: 'cm18_1', postId: 'p18', userId: 'u6', nickname: '새내기 독서가', parentId: 'cm18', text: '진정한 자아를 찾는 여정에 함께 응원을 보냅니다!', createdAt: now - HOUR * 19 },
+
+          { id: 'cm_rep1', postId: 'p1', userId: 'u9', nickname: '악플러99', text: '이딴 글을 왜 올림? 도배 작작 해라 불쾌하네', reportsCount: 5, createdAt: now - HOUR * 3 }
+        ],
+        collections: [
+          { id: 'col1', name: '삶이 흔들릴 때 꺼내보는 문장들', desc: '불안하고 막막할 때 마음을 단단하게 잡아주는 깊은 울림의 인용구 컬렉션.', postIds: ['p1', 'p3', 'p5', 'p8'], author: '은지', likes: 58, createdAt: now - DAY * 10 },
+          { id: 'col2', name: '개발자의 성장을 돕는 기술서 명문장', desc: '좋은 코드를 고민하고 애자일 철학을 실천하는 엔지니어들을 위한 구절 모음.', postIds: ['p4'], author: '총괄 관리자', likes: 42, createdAt: now - DAY * 8 },
+          { id: 'col3', name: '새벽 2시에 읽기 좋은 밤의 문장', desc: '고요한 밤 잔잔한 조명 아래서 나직이 읊조리기 좋은 감성적인 인용구.', postIds: ['p2', 'p5'], author: '민수', likes: 31, createdAt: now - DAY * 5 }
+        ],
+        users: [
+          { id: 'u1', email: 'mutuldu@gmail.com', nickname: '총괄 관리자', completedBooks: 312, postsCount: 84, reportsReceived: 0, isAdmin: true, isBanned: false, tier: '마스터', createdAt: now - DAY * 100 },
+          { id: 'u2', email: 'eunji_reads@gmail.com', nickname: '은지', completedBooks: 520, postsCount: 190, reportsReceived: 0, isAdmin: false, isBanned: false, tier: '챌린저', createdAt: now - DAY * 80 },
+          { id: 'u3', email: 'minsoo_book@naver.com', nickname: '민수', completedBooks: 215, postsCount: 62, reportsReceived: 0, isAdmin: false, isBanned: false, tier: '다이아몬드', createdAt: now - DAY * 50 },
+          { id: 'u4', email: 'chloe_lit@gmail.com', nickname: '클로이', completedBooks: 35, postsCount: 28, reportsReceived: 0, isAdmin: false, isBanned: false, tier: '골드', createdAt: now - DAY * 30 },
+          { id: 'u5', email: 'frontier_reader@kakao.com', nickname: '글쓰는 수집가', completedBooks: 15, postsCount: 14, reportsReceived: 0, isAdmin: false, isBanned: false, tier: '실버', createdAt: now - DAY * 20 },
+          { id: 'u6', email: 'beginner_kim@gmail.com', nickname: '새내기 독서가', completedBooks: 4, postsCount: 5, reportsReceived: 0, isAdmin: false, isBanned: false, tier: '브론즈', createdAt: now - DAY * 10 },
+          { id: 'u7', email: 'spammer_boy@gmail.com', nickname: '스팸마왕', completedBooks: 0, postsCount: 12, reportsReceived: 8, isAdmin: false, isBanned: false, tier: '프론티어', createdAt: now - DAY * 2 },
+          { id: 'u8', email: 'spoiler_king@daum.net', nickname: '스포왕', completedBooks: 4, postsCount: 9, reportsReceived: 3, isAdmin: false, isBanned: false, tier: '브론즈', createdAt: now - DAY * 10 },
+          { id: 'u9', email: 'bad_actor_99@yahoo.com', nickname: '악플러99', completedBooks: 0, postsCount: 5, reportsReceived: 6, isAdmin: false, isBanned: true, banReason: '지속적인 비하 댓글 및 신고 5회 이상 누적', createdAt: now - DAY * 5 }
+        ],
+        reports: [
+          { id: 'rep1', targetType: 'post', targetId: 'p_rep2', targetSnippet: '불법 도박 사이트 및 스팸 홍보 쿠폰...', reporterName: '은지', targetAuthorName: '스팸마왕', targetAuthorId: 'u7', reason: '불법 광고 및 도배', status: 'pending', createdAt: now - HOUR * 8 },
+          { id: 'rep2', targetType: 'post', targetId: 'p_rep1', targetSnippet: '[스포일러 주의] 싱클레어가 결말 부분에서...', reporterName: '민수', targetAuthorName: '스포왕', targetAuthorId: 'u8', reason: '스포일러 미표시', status: 'pending', createdAt: now - HOUR * 12 },
+          { id: 'rep3', targetType: 'comment', targetId: 'cm_rep1', targetSnippet: '이딴 글을 왜 올림? 도배 작작 해라...', reporterName: '은지', targetAuthorName: '악플러99', targetAuthorId: 'u9', reason: '부적절한 어조 / 욕설 및 비하', status: 'pending', createdAt: now - HOUR * 3 }
+        ],
+        announcements: [
+          { id: 'ann1', title: '📢 문장수집가 v2.0 통합 관리자 모니터링 시스템 정기 업데이트 완료', content: '책 정보 관리, 신고 자동 블라인드 및 9단계 회급 시스템이 업데이트 되었습니다.', active: true, createdAt: now - DAY * 2 },
+          { id: 'ann2', title: '🎁 8월의 감성 인용 카드 공유왕 챌린지 이벤트', content: '나만의 1:1 인용 카드를 가공해 SNS에 공유해 보세요! 추첨을 통해 도서 상품권을 드립니다.', active: true, createdAt: now - DAY * 1 }
+        ],
+        adminLogs: [
+          { id: 'log1', action: '시스템 초기화', details: '관리자 센터 데모 데이터베이스 구성 완료', timestamp: Date.now() }
+        ],
+        bookHistory: []
+      };
+      localStorage.setItem(DB_KEY, JSON.stringify(fresh));
+      return fresh;
+    }
+
+    function ensureInitialSchema(d) {
+      if (!Array.isArray(d.users)) d.users = [];
+      if (!Array.isArray(d.reports)) d.reports = [];
+      if (!Array.isArray(d.announcements)) d.announcements = [];
+      if (!Array.isArray(d.adminLogs)) d.adminLogs = [];
+      if (!Array.isArray(d.comments)) d.comments = [];
+
+      // Auto-populate default users if missing
+      if (d.users.length === 0) {
+        d.users = [
+          { id: 'u1', email: 'mutuldu@gmail.com', nickname: '총괄 관리자', completedBooks: 312, postsCount: 84, reportsReceived: 0, isAdmin: true, isBanned: false, tier: '마스터', createdAt: Date.now() - 86400000 * 100 },
+          { id: 'u2', email: 'eunji_reads@gmail.com', nickname: '은지', completedBooks: 520, postsCount: 190, reportsReceived: 0, isAdmin: false, isBanned: false, tier: '챌린저', createdAt: Date.now() - 86400000 * 80 },
+          { id: 'u3', email: 'minsoo_book@naver.com', nickname: '민수', completedBooks: 215, postsCount: 62, reportsReceived: 0, isAdmin: false, isBanned: false, tier: '다이아몬드', createdAt: Date.now() - 86400000 * 50 },
+          { id: 'u4', email: 'spammer_boy@gmail.com', nickname: '스팸마왕', completedBooks: 0, postsCount: 12, reportsReceived: 8, isAdmin: false, isBanned: false, tier: '프론티어', createdAt: Date.now() - 86400000 * 2 },
+          { id: 'u5', email: 'spoiler_king@daum.net', nickname: '스포왕', completedBooks: 4, postsCount: 9, reportsReceived: 3, isAdmin: false, isBanned: false, tier: '브론즈', createdAt: Date.now() - 86400000 * 10 }
+        ];
+      }
+    }
+
+    /* ---------- Navigation State ---------- */
+    let currentTab = 'dashboard';
+
+    document.querySelectorAll('.nav-item').forEach(btn => {
+      btn.onclick = () => {
+        document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentTab = btn.dataset.tab;
+        renderCurrentView();
+      };
+    });
+
+    function updateNavBadges() {
+      document.getElementById('badge-books').innerText = db.contents.length;
+      const pendingReports = db.reports.filter(r => r.status === 'pending').length;
+      document.getElementById('badge-reports').innerText = pendingReports;
+      document.getElementById('badge-users').innerText = db.users.length;
+      document.getElementById('badge-posts').innerText = db.posts.length;
+    }
+
+    /* ---------- Toast Notification ---------- */
+    function showToast(msg, type = 'info') {
+      const container = document.getElementById('toastContainer');
+      const el = document.createElement('div');
+      el.className = 'toast';
+      el.innerHTML = `<span>${type === 'error' ? '⚠️' : '⚡'}</span> <span>${esc(msg)}</span>`;
+      container.appendChild(el);
+      setTimeout(() => el.remove(), 3500);
+    }
+
+    function esc(s) {
+      return (s || '').toString().replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    }
+
+    function fmtDate(ts) {
+      if (!ts) return '-';
+      const d = new Date(ts);
+      return `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+    }
+
+    function logAdminAction(action, details) {
+      if (!db.adminLogs) db.adminLogs = [];
+      db.adminLogs.unshift({
+        id: 'log_' + Date.now(),
+        action,
+        details,
+        timestamp: Date.now()
+      });
+      saveDB();
+    }
+
+    /* ---------- Theme Toggle ---------- */
+    function toggleTheme() {
+      const current = document.documentElement.getAttribute('data-theme');
+      const next = current === 'light' ? 'dark' : 'light';
+      document.documentElement.setAttribute('data-theme', next);
+      document.getElementById('themeToggleBtn').innerText = next === 'light' ? '🌙 다크모드' : '☀️ 라이트모드';
+      renderCurrentView();
+    }
+
+    /* ---------- View Renderers ---------- */
+    function renderCurrentView() {
+      updateNavBadges();
+      const container = document.getElementById('viewContainer');
+      const titleEl = document.getElementById('view-title');
+      const descEl = document.getElementById('view-desc');
+
+      if (currentTab === 'dashboard') {
+        titleEl.innerText = '대시보드 & 종합 통계';
+        descEl.innerText = '플랫폼의 오늘 및 누적 활동 트렌드, 카테고리 분포, 회원 계급 및 신고 처리 현황입니다.';
+        renderDashboardView(container);
+      } else if (currentTab === 'books') {
+        titleEl.innerText = '도서 정보 관리';
+        descEl.innerText = '시스템 마스터 도서 DB 목록을 조희, 추가, 정보 수정 및 삭제합니다.';
+        renderBooksView(container);
+      } else if (currentTab === 'reports') {
+        titleEl.innerText = '신고 모니터링 및 처리';
+        descEl.innerText = '사용자들이 신고한 게시글, 댓글, 사용자 계정을 모아서 심사하고 삭제/차단 조치합니다.';
+        renderReportsView(container);
+      } else if (currentTab === 'users') {
+        titleEl.innerText = '회원 관리 & 계급/차단';
+        descEl.innerText = '전체 회원 목록과 9단계 독서 등급을 감시하고, 신고 누적 계정을 차단 관리합니다.';
+        renderUsersView(container);
+      } else if (currentTab === 'posts') {
+        titleEl.innerText = '포스트 & 댓글 전체 관리';
+        descEl.innerText = '등록된 독서 카드 기록 및 댓글 목록을 조회하고 필요 시 수동 관리/삭제합니다.';
+        renderPostsView(container);
+      } else if (currentTab === 'announcements') {
+        titleEl.innerText = '공지사항 & 팝업 관리';
+        descEl.innerText = '메인 앱 사용자에게 노출되는 시스템 통합 공지사항을 작성하고 전송합니다.';
+        renderAnnouncementsView(container);
+      } else if (currentTab === 'settings') {
+        titleEl.innerText = 'DB 백업, 복원 & 감사 로그';
+        descEl.innerText = '전체 데이터 백업/복원 및 관리자의 최근 시스템 조치 로그를 검토합니다.';
+        renderSettingsView(container);
+      }
+    }
+
+    /* 1. Dashboard View */
+    let chartInstances = {};
+
+    function renderDashboardView(container) {
+      const todayStart = new Date().setHours(0,0,0,0);
+      const todayPosts = db.posts.filter(p => p.createdAt >= todayStart).length;
+      const todayComments = db.comments.filter(c => c.createdAt >= todayStart).length;
+      const todayReports = db.reports.filter(r => r.createdAt >= todayStart).length;
+      const pendingReports = db.reports.filter(r => r.status === 'pending').length;
+      const bannedUsers = db.users.filter(u => u.isBanned).length;
+
+      container.innerHTML = `
+        <!-- Top Metrics Cards Grid -->
+        <div class="metrics-grid">
+          <div class="metric-card">
+            <div class="metric-title"><span>📝 오늘 카드(포스트) 수</span> <span>📈</span></div>
+            <div class="metric-value">${todayPosts} <span style="font-size:14px; font-weight:600; color:var(--text-muted);">/ 전체 ${db.posts.length}</span></div>
+            <div class="metric-sub up">오늘 신규 등록된 독서 기록</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-title"><span>💬 오늘 작성 댓글 수</span> <span>💭</span></div>
+            <div class="metric-value">${todayComments} <span style="font-size:14px; font-weight:600; color:var(--text-muted);">/ 전체 ${db.comments.length}</span></div>
+            <div class="metric-sub">유저 간 커뮤니티 소통</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-title"><span>🚨 미처리 신고 건수</span> <span>⚠️</span></div>
+            <div class="metric-value" style="color:${pendingReports > 0 ? 'var(--accent-red)' : 'var(--text-main)'};">${pendingReports} <span style="font-size:14px; font-weight:600; color:var(--text-muted);">/ 오늘 ${todayReports}건</span></div>
+            <div class="metric-sub alert">${pendingReports > 0 ? '긴급 검토 및 조치 필요' : '모든 신고 처리 완료'}</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-title"><span>👥 전체 회원 수</span> <span>👤</span></div>
+            <div class="metric-value">${db.users.length}</div>
+            <div class="metric-sub">🚫 차단 계정: ${bannedUsers}명</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-title"><span>📚 마스터 도서 수</span> <span>📖</span></div>
+            <div class="metric-value">${db.contents.length}</div>
+            <div class="metric-sub">독서 수집 데이터베이스</div>
+          </div>
+        </div>
+
+        <!-- Interactive Charts 2x2 Grid -->
+        <div class="charts-grid">
+          <div class="chart-card">
+            <div class="chart-header">
+              <h3>📈 일별 활동 트렌드 (최근 7일)</h3>
+              <span class="badge badge-primary">카드 · 댓글 · 신고</span>
+            </div>
+            <div class="chart-body">
+              <canvas id="chartTrend"></canvas>
+            </div>
+          </div>
+
+          <div class="chart-card">
+            <div class="chart-header">
+              <h3>🏷️ 장르별 도서 등록 비율</h3>
+              <span class="badge badge-success">Master DB</span>
+            </div>
+            <div class="chart-body">
+              <canvas id="chartGenres"></canvas>
+            </div>
+          </div>
+
+          <div class="chart-card">
+            <div class="chart-header">
+              <h3>👑 회원 독서 계급/등목 분포 (9 단계)</h3>
+              <span class="badge badge-warning">Tier Breakdown</span>
+            </div>
+            <div class="chart-body">
+              <canvas id="chartTiers"></canvas>
+            </div>
+          </div>
+
+          <div class="chart-card">
+            <div class="chart-header">
+              <h3>🚨 신고 처리 상태 비율</h3>
+              <span class="badge badge-danger">Compliance</span>
+            </div>
+            <div class="chart-body">
+              <canvas id="chartReports"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recent Urgent Pending Reports Section -->
+        <div class="data-table-card">
+          <div style="padding: 16px 20px; border-bottom:1px solid var(--card-border); display:flex; justify-content:space-between; align-items:center;">
+            <h3 style="font-size:15px; font-weight:800; color:var(--text-main);">🚨 최근 대기 중인 신고 항목 (Top 5)</h3>
+            <button class="btn btn-sm btn-secondary" onclick="currentTab='reports'; renderCurrentView();">전체 신고함 이동 →</button>
+          </div>
+          <div class="table-responsive">
+            <table>
+              <thead>
+                <tr>
+                  <th>유형</th>
+                  <th>신고 사유</th>
+                  <th>대상 콘텐츠 요약</th>
+                  <th>피신고자</th>
+                  <th>신고자</th>
+                  <th>신고 일시</th>
+                  <th>빠른 조치</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${db.reports.filter(r => r.status === 'pending').slice(0, 5).map(r => `
+                  <tr>
+                    <td><span class="badge ${r.targetType === 'post' ? 'badge-primary' : (r.targetType === 'comment' ? 'badge-warning' : 'badge-danger')}">${r.targetType.toUpperCase()}</span></td>
+                    <td><strong style="color:var(--accent-red);">${esc(r.reason)}</strong></td>
+                    <td style="max-width:240px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">"${esc(r.targetSnippet)}"</td>
+                    <td><strong>${esc(r.targetAuthorName)}</strong></td>
+                    <td>${esc(r.reporterName)}</td>
+                    <td>${fmtDate(r.createdAt)}</td>
+                    <td>
+                      <div style="display:flex; gap:6px;">
+                        <button class="btn btn-sm btn-danger" onclick="resolveReportAction('${r.id}', 'delete')">🗑 삭제</button>
+                        <button class="btn btn-sm btn-secondary" onclick="resolveReportAction('${r.id}', 'dismiss')">🛡 기각</button>
+                      </div>
+                    </td>
+                  </tr>
+                `).join('') || `<tr><td colspan="7" style="text-align:center; padding:24px; color:var(--text-muted);">현재 대기 중인 신고 내역이 없습니다! ✨</td></tr>`}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+
+      // Render Charts with Chart.js
+      setTimeout(() => initDashboardCharts(), 50);
+    }
+
+    function initDashboardCharts() {
+      // Destroy existing instances
+      Object.values(chartInstances).forEach(c => c && c.destroy && c.destroy());
+      chartInstances = {};
+
+      const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+      const textColor = isLight ? '#475569' : '#94A3B8';
+      const gridColor = isLight ? '#E2E8F0' : '#334155';
+
+      // 1. Trend Chart
+      const ctxTrend = document.getElementById('chartTrend');
+      if (ctxTrend) {
+        chartInstances.trend = new Chart(ctxTrend, {
+          type: 'line',
+          data: {
+            labels: ['6일 전', '5일 전', '4일 전', '3일 전', '2일 전', '어제', '오늘'],
+            datasets: [
+              { label: '독서 카드', data: [5, 8, 12, 9, 14, 18, db.posts.length], borderColor: '#6366F1', backgroundColor: 'rgba(99,102,241,0.1)', fill: true, tension: 0.3 },
+              { label: '작성 댓글', data: [2, 4, 7, 5, 8, 11, db.comments.length], borderColor: '#F59E0B', backgroundColor: 'transparent', tension: 0.3 },
+              { label: '접수 신고', data: [0, 1, 0, 2, 1, 3, db.reports.length], borderColor: '#EF4444', backgroundColor: 'transparent', tension: 0.3 }
+            ]
+          },
+          options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: textColor } } }, scales: { x: { ticks: { color: textColor }, grid: { color: gridColor } }, y: { ticks: { color: textColor }, grid: { color: gridColor } } } }
+        });
+      }
+
+      // 2. Genre Chart
+      const ctxGenres = document.getElementById('chartGenres');
+      if (ctxGenres) {
+        const genreCounts = {};
+        db.contents.forEach(b => { genreCounts[b.genre || '기타'] = (genreCounts[b.genre || '기타'] || 0) + 1; });
+        chartInstances.genres = new Chart(ctxGenres, {
+          type: 'doughnut',
+          data: {
+            labels: Object.keys(genreCounts),
+            datasets: [{ data: Object.values(genreCounts), backgroundColor: ['#6366F1', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899', '#14B8A6'] }]
+          },
+          options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { color: textColor } } } }
+        });
+      }
+
+      // 3. Tiers Chart
+      const ctxTiers = document.getElementById('chartTiers');
+      if (ctxTiers) {
+        const tierCounts = { '프론티어': 0, '브론즈': 0, '실버': 0, '골드': 0, '플래티넘': 0, '에메랄드': 0, '다이아몬드': 0, '마스터': 0, '챌린저': 0 };
+        db.users.forEach(u => { const t = u.tier || '프론티어'; tierCounts[t] = (tierCounts[t] || 0) + 1; });
+        chartInstances.tiers = new Chart(ctxTiers, {
+          type: 'bar',
+          data: {
+            labels: Object.keys(tierCounts),
+            datasets: [{ label: '회원 수', data: Object.values(tierCounts), backgroundColor: '#8B5CF6', borderRadius: 4 }]
+          },
+          options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: textColor, font: { size: 10 } }, grid: { display: false } }, y: { ticks: { color: textColor }, grid: { color: gridColor } } } }
+        });
+      }
+
+      // 4. Reports Status Chart
+      const ctxReports = document.getElementById('chartReports');
+      if (ctxReports) {
+        const pending = db.reports.filter(r => r.status === 'pending').length;
+        const resolved = db.reports.filter(r => r.status === 'resolved').length;
+        const dismissed = db.reports.filter(r => r.status === 'dismissed').length;
+        chartInstances.reports = new Chart(ctxReports, {
+          type: 'pie',
+          data: {
+            labels: ['대기 중 (Pending)', '조치 완료 (Deleted)', '기각 처리 (Dismissed)'],
+            datasets: [{ data: [pending, resolved, dismissed], backgroundColor: ['#EF4444', '#10B981', '#94A3B8'] }]
+          },
+          options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: textColor } } } }
+        });
+      }
+    }
+
+    /* 2. Books View Pagination (25 items per page) */
+    let bookSearchQuery = '';
+    let bookGenreFilter = 'ALL';
+    let bookPage = 1;
+    const BOOK_PAGE_SIZE = 25;
+
+    function changeBookPage(p) {
+      bookPage = p;
+      renderBooksView(document.getElementById('viewContainer'));
+    }
+
+    function renderPaginationHtml(currentPage, totalPages, onPageChangeFnName, totalCount) {
+      if (totalPages <= 1) return '';
+      
+      let pageButtons = '';
+      const maxButtons = 5;
+      let startPage = Math.max(1, currentPage - 2);
+      let endPage = Math.min(totalPages, startPage + maxButtons - 1);
+      if (endPage - startPage + 1 < maxButtons) {
+        startPage = Math.max(1, endPage - maxButtons + 1);
+      }
+
+      for (let i = startPage; i <= endPage; i++) {
+        const isCurrent = i === currentPage;
+        pageButtons += `
+          <button class="btn btn-sm ${isCurrent ? 'btn-primary' : 'btn-secondary'}" style="min-width:32px; padding:4px 8px; font-weight:${isCurrent ? '800' : '600'};" onclick="${onPageChangeFnName}(${i})">
+            ${i}
+          </button>
+        `;
+      }
+
+      return `
+        <div style="display:flex; align-items:center; justify-content:space-between; padding:12px 16px; background:var(--card-dark); border-top:1px solid var(--card-border); flex-wrap:wrap; gap:10px;">
+          <div style="font-size:12px; color:var(--text-muted); font-weight:600;">
+            총 <strong>${totalCount || 0}</strong>개 (페이지 <strong>${currentPage}</strong> / ${totalPages})
+          </div>
+          <div style="display:flex; align-items:center; gap:4px;">
+            <button class="btn btn-sm btn-secondary" ${currentPage <= 1 ? 'disabled style="opacity:0.4; cursor:not-allowed;"' : ''} onclick="${onPageChangeFnName}(${currentPage - 1})">◀ 이전</button>
+            ${pageButtons}
+            <button class="btn btn-sm btn-secondary" ${currentPage >= totalPages ? 'disabled style="opacity:0.4; cursor:not-allowed;"' : ''} onclick="${onPageChangeFnName}(${currentPage + 1})">다음 ▶</button>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderBooksView(container) {
+      const genres = ['ALL', '소설', '시/에세이', '인문학', '철학/사상', '역사/세계사', '경제/경영/재테크', '자기계발', 'IT/컴퓨터/AI', '기타'];
+      const filtered = db.contents.filter(b => {
+        const matchesQuery = !bookSearchQuery || b.title.toLowerCase().includes(bookSearchQuery.toLowerCase()) || (b.creator && b.creator.toLowerCase().includes(bookSearchQuery.toLowerCase())) || (b.isbn && b.isbn.includes(bookSearchQuery));
+        const matchesGenre = bookGenreFilter === 'ALL' || b.genre === bookGenreFilter;
+        return matchesQuery && matchesGenre;
+      });
+
+      const totalBookPages = Math.ceil(filtered.length / BOOK_PAGE_SIZE) || 1;
+      if (bookPage > totalBookPages) bookPage = totalBookPages;
+      if (bookPage < 1) bookPage = 1;
+
+      const pageBooks = filtered.slice((bookPage - 1) * BOOK_PAGE_SIZE, bookPage * BOOK_PAGE_SIZE);
+
+      container.innerHTML = `
+        <div class="filter-bar">
+          <div class="search-input-wrap">
+            <span class="search-icon">🔍</span>
+            <input type="text" class="search-input" placeholder="도서 제목 / 저자 / 출판사 / ISBN 검색..." value="${esc(bookSearchQuery)}" oninput="bookSearchQuery = this.value; bookPage = 1; renderBooksView(document.getElementById('viewContainer'));">
+          </div>
+          <select class="select-filter" onchange="bookGenreFilter = this.value; bookPage = 1; renderBooksView(document.getElementById('viewContainer'));">
+            ${genres.map(g => `<option value="${g}" ${bookGenreFilter === g ? 'selected' : ''}>${g === 'ALL' ? '📖 전체 장르' : g}</option>`).join('')}
+          </select>
+          <button class="btn btn-primary" onclick="openAddBookModal()">➕ 신규 도서 등록</button>
+        </div>
+
+        <div class="data-table-card">
+          <div class="table-responsive">
+            <table>
+              <thead>
+                <tr>
+                  <th>표지</th>
+                  <th>도서 정보</th>
+                  <th>장르</th>
+                  <th>총 페이지</th>
+                  <th>평점</th>
+                  <th>완독 독자수</th>
+                  <th>ISBN</th>
+                  <th>관리 조치</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${pageBooks.map(b => `
+                  <tr>
+                    <td>
+                      ${b.cover ? `<img src="${esc(b.cover)}" style="width:40px; height:56px; object-fit:cover; border-radius:4px; border:1px solid var(--card-border);">` : `<div style="width:40px; height:56px; border-radius:4px; background:var(--card-border); display:flex; align-items:center; justify-content:center; font-size:16px;">📖</div>`}
+                    </td>
+                    <td>
+                      <div style="font-weight:800; font-size:14px; color:var(--text-main);">${esc(b.title)}</div>
+                      <div style="font-size:12px; color:var(--text-muted); margin-top:2px;">✍️ ${esc(b.creator || '미상')} · 🏢 ${esc(b.publisher || '미상')}</div>
+                    </td>
+                    <td><span class="badge badge-primary">${esc(b.genre || '소설')}</span></td>
+                    <td><strong>${b.totalPoint || 300}p</strong></td>
+                    <td><span style="color:var(--accent-orange); font-weight:800;">★ ${b.rating || '0.0'}</span></td>
+                    <td>${b.readerCount || 0}명</td>
+                    <td style="font-family:monospace; font-size:11.5px; color:var(--text-muted);">${esc(b.isbn || '-')}</td>
+                    <td>
+                      <div style="display:flex; gap:6px;">
+                        <button class="btn btn-sm btn-secondary" onclick="openEditBookModal('${b.id}')">✏️ 정보 수정</button>
+                        <button class="btn btn-sm btn-danger" onclick="deleteBookAction('${b.id}')">🗑 삭제</button>
+                      </div>
+                    </td>
+                  </tr>
+                `).join('') || `<tr><td colspan="8" style="text-align:center; padding:30px; color:var(--text-muted);">조건에 일치하는 도서가 없습니다.</td></tr>`}
+              </tbody>
+            </table>
+          </div>
+          ${renderPaginationHtml(bookPage, totalBookPages, 'changeBookPage', filtered.length)}
+        </div>
+      `;
+    }
+
+    function openEditBookModal(id) {
+      const book = db.contents.find(b => b.id === id);
+      if (!book) return;
+
+      const target = document.getElementById('modalTarget');
+      target.innerHTML = `
+        <div class="modal-overlay" onclick="if(event.target===this) closeModal();">
+          <div class="modal-box">
+            <div class="modal-header">
+              <h3>✏️ 도서 정보 수정 (${esc(book.title)})</h3>
+              <button class="close-modal-btn" onclick="closeModal()">✕</button>
+            </div>
+            <form onsubmit="saveEditBook(event, '${book.id}')">
+              <div style="display:flex; gap:16px; margin-bottom:16px;">
+                <div style="flex-shrink:0;">
+                  <img id="edit-cover-preview" src="${esc(book.cover || 'https://via.placeholder.com/80x110')}" style="width:80px; height:112px; object-fit:cover; border-radius:6px; border:1px solid var(--card-border);">
+                </div>
+                <div style="flex:1;">
+                  <div class="form-group">
+                    <label>표지 이미지 URL</label>
+                    <input type="url" class="form-control" id="edit-cover" value="${esc(book.cover || '')}" oninput="document.getElementById('edit-cover-preview').src = this.value || 'https://via.placeholder.com/80x110';">
+                  </div>
+                </div>
+              </div>
+              <div class="form-group">
+                <label>도서 제목</label>
+                <input type="text" class="form-control" id="edit-title" value="${esc(book.title)}" required>
+              </div>
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                <div class="form-group">
+                  <label>저자 (작가)</label>
+                  <input type="text" class="form-control" id="edit-creator" value="${esc(book.creator || '')}" required>
+                </div>
+                <div class="form-group">
+                  <label>출판사</label>
+                  <input type="text" class="form-control" id="edit-publisher" value="${esc(book.publisher || '')}">
+                </div>
+              </div>
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                <div class="form-group">
+                  <label>장르 카테고리</label>
+                  <select class="form-control" id="edit-genre">
+                    ${['소설', '시/에세이', '인문학', '철학/사상', '역사/세계사', '경제/경영/재테크', '자기계발', '자연/과학/공학', 'IT/컴퓨터/AI', '예술/대중문화', '기타'].map(g => `<option value="${g}" ${book.genre === g ? 'selected' : ''}>${g}</option>`).join('')}
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>총 페이지 (totalPoint)</label>
+                  <input type="number" class="form-control" id="edit-totalPoint" value="${book.totalPoint || 300}" min="10" required>
+                </div>
+              </div>
+              <div class="form-group">
+                <label>ISBN 번호</label>
+                <input type="text" class="form-control" id="edit-isbn" value="${esc(book.isbn || '')}">
+              </div>
+              <div class="form-actions">
+                <button type="button" class="btn btn-secondary" onclick="closeModal()">취소</button>
+                <button type="submit" class="btn btn-primary">💾 변경사항 저장</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      `;
+    }
+
+    function saveEditBook(e, id) {
+      e.preventDefault();
+      const book = db.contents.find(b => b.id === id);
+      if (book) {
+        book.title = document.getElementById('edit-title').value.trim();
+        book.creator = document.getElementById('edit-creator').value.trim();
+        book.publisher = document.getElementById('edit-publisher').value.trim();
+        book.cover = document.getElementById('edit-cover').value.trim();
+        book.genre = document.getElementById('edit-genre').value;
+        book.totalPoint = parseInt(document.getElementById('edit-totalPoint').value) || 300;
+        book.isbn = document.getElementById('edit-isbn').value.trim();
+        saveDB();
+        logAdminAction('도서 수정', `'${book.title}' 도서 메타 정보 업데이트`);
+        showToast('도서 정보가 성공적으로 수정되었습니다.');
+        closeModal();
+        renderCurrentView();
+      }
+    }
+
+    function openAddBookModal() {
+      const target = document.getElementById('modalTarget');
+      target.innerHTML = `
+        <div class="modal-overlay" onclick="if(event.target===this) closeModal();">
+          <div class="modal-box">
+            <div class="modal-header">
+              <h3>➕ 마스터 DB 신규 도서 직접 등록</h3>
+              <button class="close-modal-btn" onclick="closeModal()">✕</button>
+            </div>
+            <form onsubmit="saveAddBook(event)">
+              <div class="form-group">
+                <label>도서 제목 *</label>
+                <input type="text" class="form-control" id="add-title" placeholder="예: 구의 증명" required>
+              </div>
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                <div class="form-group">
+                  <label>저자 이름 *</label>
+                  <input type="text" class="form-control" id="add-creator" placeholder="예: 최진영" required>
+                </div>
+                <div class="form-group">
+                  <label>출판사</label>
+                  <input type="text" class="form-control" id="add-publisher" placeholder="예: 은행나무">
+                </div>
+              </div>
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                <div class="form-group">
+                  <label>장르 카테고리</label>
+                  <select class="form-control" id="add-genre">
+                    ${['소설', '시/에세이', '인문학', '철학/사상', '역사/세계사', '경제/경영/재테크', '자기계발', '자연/과학/공학', 'IT/컴퓨터/AI', '예술/대중문화', '기타'].map(g => `<option value="${g}">${g}</option>`).join('')}
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>총 페이지 수 *</label>
+                  <input type="number" class="form-control" id="add-totalPoint" value="250" min="10" required>
+                </div>
+              </div>
+              <div class="form-group">
+                <label>표지 이미지 URL</label>
+                <input type="url" class="form-control" id="add-cover" placeholder="https://...">
+              </div>
+              <div class="form-group">
+                <label>ISBN 번호</label>
+                <input type="text" class="form-control" id="add-isbn" placeholder="13자리 또는 10자리 ISBN">
+              </div>
+              <div class="form-actions">
+                <button type="button" class="btn btn-secondary" onclick="closeModal()">취소</button>
+                <button type="submit" class="btn btn-primary">➕ 등록 완료</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      `;
+    }
+
+    function saveAddBook(e) {
+      e.preventDefault();
+      const title = document.getElementById('add-title').value.trim();
+      const newBook = {
+        id: 'b_' + Date.now(),
+        type: 'BOOK',
+        title: title,
+        creator: document.getElementById('add-creator').value.trim(),
+        publisher: document.getElementById('add-publisher').value.trim(),
+        genre: document.getElementById('add-genre').value,
+        totalPoint: parseInt(document.getElementById('add-totalPoint').value) || 250,
+        cover: document.getElementById('add-cover').value.trim() || null,
+        isbn: document.getElementById('add-isbn').value.trim() || '',
+        rating: 0,
+        readerCount: 0,
+        createdAt: Date.now()
+      };
+      db.contents.unshift(newBook);
+      saveDB();
+      logAdminAction('신규 도서 등록', `'${title}' 도서 생성 완료`);
+      showToast('신규 도서가 마스터 DB에 등록되었습니다.');
+      closeModal();
+      renderCurrentView();
+    }
+
+    async function deleteBookAction(id) {
+      const book = db.contents.find(b => b.id === id);
+      if (!book) return;
+      if (confirm(`'${book.title}' 도서를 마스터 DB에서 삭제하시겠습니까?\n관련 독서 카드도 함께 삭제되며 Supabase DB에서도 즉시 지워집니다.`)) {
+        db.contents = db.contents.filter(b => b.id !== id);
+        db.posts = db.posts.filter(p => p.contentId !== id);
+        db.myContent = db.myContent.filter(m => m.contentId !== id);
+        saveDB();
+
+        if (supabaseClient) {
+          try {
+            await supabaseClient.from('books').delete().eq('id', String(id));
+            await supabaseClient.from('posts').delete().eq('book_id', String(id));
+            await supabaseClient.from('my_contents').delete().eq('book_id', String(id));
+          } catch (e) {
+            console.warn('Supabase delete book error:', e);
+          }
+        }
+
+        logAdminAction('도서 삭제', `'${book.title}' 도서 및 종속 카드 Supabase 연쇄 삭제`);
+        showToast('도서가 Supabase DB 및 마스터 서버에서 완벽 삭제되었습니다.');
+        renderCurrentView();
+      }
+    }
+
+    /* 3. Reports Monitoring View Pagination (25 items per page) */
+    let reportFilterTab = 'pending';
+    let reportPage = 1;
+    const REPORT_PAGE_SIZE = 25;
+
+    function changeReportPage(p) {
+      reportPage = p;
+      renderReportsView(document.getElementById('viewContainer'));
+    }
+
+    function renderReportsView(container) {
+      const filtered = db.reports.filter(r => {
+        if (reportFilterTab === 'pending') return r.status === 'pending';
+        if (reportFilterTab === 'resolved') return r.status === 'resolved' || r.status === 'dismissed';
+        if (reportFilterTab === 'post') return r.targetType === 'post';
+        if (reportFilterTab === 'comment') return r.targetType === 'comment';
+        return true;
+      });
+
+      const totalReportPages = Math.ceil(filtered.length / REPORT_PAGE_SIZE) || 1;
+      if (reportPage > totalReportPages) reportPage = totalReportPages;
+      if (reportPage < 1) reportPage = 1;
+
+      const pageReports = filtered.slice((reportPage - 1) * REPORT_PAGE_SIZE, reportPage * REPORT_PAGE_SIZE);
+
+      container.innerHTML = `
+        <div class="filter-bar">
+          <div style="display:flex; gap:6px; flex-wrap:wrap;">
+            <button class="btn ${reportFilterTab === 'pending' ? 'btn-danger' : 'btn-secondary'}" onclick="reportFilterTab='pending'; reportPage=1; renderReportsView(document.getElementById('viewContainer'));">🔴 미처리 신고 (${db.reports.filter(r=>r.status==='pending').length})</button>
+            <button class="btn ${reportFilterTab === 'post' ? 'btn-primary' : 'btn-secondary'}" onclick="reportFilterTab='post'; reportPage=1; renderReportsView(document.getElementById('viewContainer'));">✍️ 게시글 신고</button>
+            <button class="btn ${reportFilterTab === 'comment' ? 'btn-primary' : 'btn-secondary'}" onclick="reportFilterTab='comment'; reportPage=1; renderReportsView(document.getElementById('viewContainer'));">💬 댓글 신고</button>
+            <button class="btn ${reportFilterTab === 'resolved' ? 'btn-success' : 'btn-secondary'}" onclick="reportFilterTab='resolved'; reportPage=1; renderReportsView(document.getElementById('viewContainer'));">✅ 처리/기각 완료 (${db.reports.filter(r=>r.status!=='pending').length})</button>
+            <button class="btn ${reportFilterTab === 'all' ? 'btn-primary' : 'btn-secondary'}" onclick="reportFilterTab='all'; reportPage=1; renderReportsView(document.getElementById('viewContainer'));">📋 전체 히스토리</button>
+          </div>
+        </div>
+
+        <div class="data-table-card">
+          <div class="table-responsive">
+            <table>
+              <thead>
+                <tr>
+                  <th>신고 ID</th>
+                  <th>대상 구분</th>
+                  <th>신고 사유</th>
+                  <th>신고 내용 요약</th>
+                  <th>피신고자 (작성자)</th>
+                  <th>신고자</th>
+                  <th>접수 일시</th>
+                  <th>상태</th>
+                  <th style="min-width:190px;">관리자 조치 Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${pageReports.map(r => {
+                  const targetAuthor = db.users.find(u => u.id === r.targetAuthorId || u.nickname === r.targetAuthorName);
+                  return `
+                    <tr>
+                      <td style="font-family:monospace; font-size:11.5px;">${r.id}</td>
+                      <td><span class="badge ${r.targetType === 'post' ? 'badge-primary' : (r.targetType === 'comment' ? 'badge-warning' : 'badge-danger')}">${r.targetType.toUpperCase()}</span></td>
+                      <td><strong style="color:var(--accent-red);">${esc(r.reason)}</strong></td>
+                      <td style="max-width:220px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">"${esc(r.targetSnippet)}"</td>
+                      <td>
+                        <div style="font-weight:800; color:var(--text-main);">${esc(r.targetAuthorName)} ${targetAuthor && targetAuthor.isBanned ? '<span class="badge badge-danger">차단됨</span>' : ''}</div>
+                        <div style="font-size:11px; color:var(--text-muted);">누적 신고 ${targetAuthor ? targetAuthor.reportsReceived : 0}회</div>
+                      </td>
+                      <td>${esc(r.reporterName)}</td>
+                      <td>${fmtDate(r.createdAt)}</td>
+                      <td>
+                        ${r.status === 'pending' ? '<span class="badge badge-danger">⏳ 심사 대기</span>' : (r.status === 'resolved' ? '<span class="badge badge-success">✅ 삭제 완료</span>' : '<span class="badge badge-muted">🛡 기각됨</span>')}
+                      </td>
+                      <td>
+                        ${r.status === 'pending' ? `
+                          <div style="display:flex; gap:4px; flex-wrap:wrap; align-items:center; min-width:180px;">
+                            <button class="btn btn-sm btn-danger" style="white-space:nowrap; flex-shrink:0;" onclick="resolveReportAction('${r.id}', 'delete')">🗑 삭제</button>
+                            <button class="btn btn-sm btn-secondary" style="white-space:nowrap; flex-shrink:0;" onclick="resolveReportAction('${r.id}', 'dismiss')">🛡 기각</button>
+                            <button class="btn btn-sm btn-warning" style="white-space:nowrap; flex-shrink:0;" onclick="blockUserFromReport('${r.targetAuthorId}', '${esc(r.targetAuthorName)}')">🚫 차단</button>
+                          </div>
+                        ` : '<span style="font-size:12px; color:var(--text-muted);">처리 완료됨</span>'}
+                      </td>
+                    </tr>
+                  `;
+                }).join('') || `<tr><td colspan="9" style="text-align:center; padding:30px; color:var(--text-muted);">해당 조건의 신고 항목이 없습니다.</td></tr>`}
+              </tbody>
+            </table>
+          </div>
+          ${renderPaginationHtml(reportPage, totalReportPages, 'changeReportPage', filtered.length)}
+        </div>
+      `;
+    }
+
+    async function resolveReportAction(reportId, actionType) {
+      const report = db.reports.find(r => r.id === reportId);
+      if (!report) return;
+
+      if (actionType === 'delete') {
+        if (confirm('신고된 콘텐츠를 삭제하고 완료 처리하시겠습니까?\nSupabase DB에서도 즉시 지워집니다.')) {
+          if (report.targetType === 'post') {
+            db.posts = db.posts.filter(p => p.id !== report.targetId);
+            if (supabaseClient) {
+              try { await supabaseClient.from('posts').delete().eq('id', String(report.targetId)); } catch(e){}
+            }
+          } else if (report.targetType === 'comment') {
+            db.comments = db.comments.filter(c => c.id !== report.targetId);
+            if (supabaseClient) {
+              try { await supabaseClient.from('comments').delete().eq('id', String(report.targetId)); } catch(e){}
+            }
+          }
+          report.status = 'resolved';
+          saveDB();
+          logAdminAction('신고 콘텐츠 삭제', `신고ID ${reportId} 대상을 Supabase 및 마스터 DB에서 삭제 처리함`);
+          showToast('콘텐츠가 Supabase DB에서 삭제되었으며 신고 처리가 완료되었습니다.');
+          renderCurrentView();
+        }
+      } else if (actionType === 'dismiss') {
+        report.status = 'dismissed';
+        saveDB();
+        logAdminAction('신고 기각', `신고ID ${reportId} 사유 미충족으로 기각함`);
+        showToast('신고 항목이 기각 처리되었습니다.');
+        renderCurrentView();
+      }
+    }
+
+    function blockUserFromReport(userId, userName) {
+      let targetUser = db.users.find(u => u.id === userId || u.nickname === userName);
+      if (!targetUser) {
+        targetUser = { id: userId || ('u_' + Date.now()), nickname: userName, email: `${userName}@user.app`, completedBooks: 0, postsCount: 0, reportsReceived: 1, isAdmin: false, isBanned: true, tier: '프론티어', createdAt: Date.now() };
+        db.users.push(targetUser);
+      }
+      targetUser.isBanned = true;
+      targetUser.banReason = '신고 모니터링 관리자 직권 차단';
+      saveDB();
+      logAdminAction('회원 차단', `사용자 '${userName}' 계정 강제 차단`);
+      showToast(`'${userName}' 계정이 성공적으로 차단 처리되었습니다.`);
+      renderCurrentView();
+    }
+
+    /* 4. Users View Pagination (25 items per page) */
+    let userSearchQuery = '';
+    let userStatusFilter = 'ALL';
+    let userPage = 1;
+    const USER_PAGE_SIZE = 25;
+
+    function changeUserPage(p) {
+      userPage = p;
+      renderUsersView(document.getElementById('viewContainer'));
+    }
+
+    function renderUsersView(container) {
+      const filtered = db.users.filter(u => {
+        const matchesQuery = !userSearchQuery || u.nickname.toLowerCase().includes(userSearchQuery.toLowerCase()) || (u.email && u.email.toLowerCase().includes(userSearchQuery.toLowerCase()));
+        let matchesStatus = true;
+        if (userStatusFilter === 'BANNED') matchesStatus = u.isBanned;
+        if (userStatusFilter === 'ACTIVE') matchesStatus = !u.isBanned;
+        if (userStatusFilter === 'FLAGGED') matchesStatus = (u.reportsReceived || 0) >= 3;
+        return matchesQuery && matchesStatus;
+      });
+
+      const totalUserPages = Math.ceil(filtered.length / USER_PAGE_SIZE) || 1;
+      if (userPage > totalUserPages) userPage = totalUserPages;
+      if (userPage < 1) userPage = 1;
+
+      const pageUsers = filtered.slice((userPage - 1) * USER_PAGE_SIZE, userPage * USER_PAGE_SIZE);
+
+      container.innerHTML = `
+        <div class="filter-bar">
+          <div class="search-input-wrap">
+            <span class="search-icon">🔍</span>
+            <input type="text" class="search-input" placeholder="회원 닉네임 / 이메일 / ID 검색..." value="${esc(userSearchQuery)}" oninput="userSearchQuery = this.value; userPage = 1; renderUsersView(document.getElementById('viewContainer'));">
+          </div>
+          <select class="select-filter" onchange="userStatusFilter = this.value; userPage = 1; renderUsersView(document.getElementById('viewContainer'));">
+            <option value="ALL" ${userStatusFilter === 'ALL' ? 'selected' : ''}>👥 전체 회원 목록</option>
+            <option value="ACTIVE" ${userStatusFilter === 'ACTIVE' ? 'selected' : ''}>🟢 정상 이용 중 회원</option>
+            <option value="FLAGGED" ${userStatusFilter === 'FLAGGED' ? 'selected' : ''}>🚨 신고 3회 이상 요주의 회원</option>
+            <option value="BANNED" ${userStatusFilter === 'BANNED' ? 'selected' : ''}>🔴 차단된 계정</option>
+          </select>
+        </div>
+
+        <div class="data-table-card">
+          <div class="table-responsive">
+            <table>
+              <thead>
+                <tr>
+                  <th>회원 프로필</th>
+                  <th>독서 등급 (Tier)</th>
+                  <th>완독 권수</th>
+                  <th>작성 포스트</th>
+                  <th>누적 신고 받음</th>
+                  <th>상태</th>
+                  <th>가입 일시</th>
+                  <th>관리 조치</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${pageUsers.map(u => `
+                  <tr>
+                    <td>
+                      <div style="display:flex; align-items:center; gap:10px;">
+                        <div style="width:36px; height:36px; border-radius:50%; background:var(--accent-primary); color:#FFF; font-weight:800; display:flex; align-items:center; justify-content:center;">${esc((u.nickname||'U').slice(0,1))}</div>
+                        <div>
+                          <div style="font-weight:800; color:var(--text-main);">${esc(u.nickname)} ${u.isAdmin ? '👑' : ''}</div>
+                          <div style="font-size:11.5px; color:var(--text-muted);">${esc(u.email || '-')}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td><span class="badge badge-warning">${({ '프론티어':'🌱', '브론즈':'🥉', '실버':'🥈', '골드':'🥇', '플래티넘':'💎', '에메랄드':'❇️', '다이아몬드':'💎', '마스터':'👑', '챌린저':'🔥' })[u.tier] || '🌱'} ${esc(u.tier || '프론티어')}</span></td>
+                    <td><strong>${u.completedBooks || 0}권</strong></td>
+                    <td>${u.postsCount || 0}개</td>
+                    <td><strong style="color:${(u.reportsReceived||0)>=3 ? 'var(--accent-red)' : 'var(--text-muted)'}">${u.reportsReceived || 0}회</strong></td>
+                    <td>${u.isBanned ? '<span class="badge badge-danger">🔴 차단됨</span>' : '<span class="badge badge-success">🟢 정상</span>'}</td>
+                    <td>${fmtDate(u.createdAt)}</td>
+                    <td>
+                      <div style="display:flex; gap:6px;">
+                        ${u.isBanned ? `
+                          <button class="btn btn-sm btn-success" onclick="toggleUserBan('${u.id}', false)">🟢 차단 해제</button>
+                        ` : `
+                          <button class="btn btn-sm btn-danger" onclick="toggleUserBan('${u.id}', true)">🚫 계정 차단</button>
+                        `}
+                        <button class="btn btn-sm btn-secondary" onclick="openChangeTierModal('${u.id}')">👑 등급 변경</button>
+                      </div>
+                    </td>
+                  </tr>
+                `).join('') || `<tr><td colspan="8" style="text-align:center; padding:30px; color:var(--text-muted);">조건에 해당하는 회원이 없습니다.</td></tr>`}
+              </tbody>
+            </table>
+          </div>
+          ${renderPaginationHtml(userPage, totalUserPages, 'changeUserPage', filtered.length)}
+        </div>
+      `;
+    }
+
+    function toggleUserBan(userId, doBan) {
+      const user = db.users.find(u => u.id === userId);
+      if (!user) return;
+
+      if (doBan) {
+        const reason = prompt(`'${user.nickname}' 계정을 차단하시겠습니까? 사유를 입력하세요:`, '운영 정책 위반 및 신고 누적');
+        if (reason !== null) {
+          user.isBanned = true;
+          user.banReason = reason;
+          saveDB();
+          logAdminAction('회원 차단', `'${user.nickname}' 계정 차단 (사유: ${reason})`);
+          showToast(`'${user.nickname}' 계정이 차단되었습니다.`);
+          renderCurrentView();
+        }
+      } else {
+        if (confirm(`'${user.nickname}' 계정 차단을 해제하시겠습니까?`)) {
+          user.isBanned = false;
+          user.banReason = null;
+          saveDB();
+          logAdminAction('차단 해제', `'${user.nickname}' 계정 정상화`);
+          showToast(`'${user.nickname}' 계정 차단이 해제되었습니다.`);
+          renderCurrentView();
+        }
+      }
+    }
+
+    function openChangeTierModal(userId) {
+      const user = db.users.find(u => u.id === userId);
+      if (!user) return;
+
+      const tiers = ['프론티어', '브론즈', '실버', '골드', '플래티넘', '에메랄드', '다이아몬드', '마스터', '챌린저'];
+      const target = document.getElementById('modalTarget');
+      target.innerHTML = `
+        <div class="modal-overlay" onclick="if(event.target===this) closeModal();">
+          <div class="modal-box">
+            <div class="modal-header">
+              <h3>👑 회원 독서 계급 수동 조정 (${esc(user.nickname)})</h3>
+              <button class="close-modal-btn" onclick="closeModal()">✕</button>
+            </div>
+            <form onsubmit="saveUserTier(event, '${user.id}')">
+              <div class="form-group">
+                <label>현재 등급: ${esc(user.tier || '프론티어')}</label>
+                <select class="form-control" id="change-tier-select">
+                  ${tiers.map(t => `<option value="${t}" ${user.tier === t ? 'selected' : ''}>${t}</option>`).join('')}
+                </select>
+              </div>
+              <div class="form-actions">
+                <button type="button" class="btn btn-secondary" onclick="closeModal()">취소</button>
+                <button type="submit" class="btn btn-primary">변경 완료</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      `;
+    }
+
+    function saveUserTier(e, userId) {
+      e.preventDefault();
+      const user = db.users.find(u => u.id === userId);
+      if (user) {
+        const nextTier = document.getElementById('change-tier-select').value;
+        user.tier = nextTier;
+        saveDB();
+        logAdminAction('회원 등급 변경', `'${user.nickname}' 등급을 ${nextTier}(으)로 변경`);
+        showToast('회원 등급이 성공적으로 조정되었습니다.');
+        closeModal();
+        renderCurrentView();
+      }
+    }
+
+    /* 5. Posts & Comments View Pagination (50 items per page with Top Sub-Tabs) */
+    let postSubTab = 'posts';
+    let postPage = 1;
+    let commentPage = 1;
+    const POST_PAGE_SIZE = 50;
+    const COMMENT_PAGE_SIZE = 50;
+
+    function changePostPage(p) {
+      postPage = p;
+      renderPostsView(document.getElementById('viewContainer'));
+    }
+
+    function changeCommentPage(p) {
+      commentPage = p;
+      renderPostsView(document.getElementById('viewContainer'));
+    }
+
+    function renderPostsView(container) {
+      const allPosts = db.posts || [];
+      const totalPostPages = Math.ceil(allPosts.length / POST_PAGE_SIZE) || 1;
+      if (postPage > totalPostPages) postPage = totalPostPages;
+      if (postPage < 1) postPage = 1;
+      const pagePosts = allPosts.slice((postPage - 1) * POST_PAGE_SIZE, postPage * POST_PAGE_SIZE);
+
+      const allComments = db.comments || [];
+      const totalCommentPages = Math.ceil(allComments.length / COMMENT_PAGE_SIZE) || 1;
+      if (commentPage > totalCommentPages) commentPage = totalCommentPages;
+      if (commentPage < 1) commentPage = 1;
+      const pageComments = allComments.slice((commentPage - 1) * COMMENT_PAGE_SIZE, commentPage * COMMENT_PAGE_SIZE);
+
+      const isPostsTab = postSubTab === 'posts';
+
+      container.innerHTML = `
+        <div class="filter-bar" style="margin-bottom:20px;">
+          <div style="display:flex; gap:8px;">
+            <button class="btn ${isPostsTab ? 'btn-primary' : 'btn-secondary'}" onclick="postSubTab='posts'; postPage=1; renderPostsView(document.getElementById('viewContainer'));">
+              📝 전체 독서 카드 목록 (${allPosts.length}개)
+            </button>
+            <button class="btn ${!isPostsTab ? 'btn-primary' : 'btn-secondary'}" onclick="postSubTab='comments'; commentPage=1; renderPostsView(document.getElementById('viewContainer'));">
+              💬 전체 댓글 목록 (${allComments.length}개)
+            </button>
+          </div>
+        </div>
+
+        ${isPostsTab ? `
+          <!-- Full Width Posts Table (50 per page) -->
+          <div class="data-table-card">
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th>포스트 ID</th>
+                    <th>작성자</th>
+                    <th>관련 도서</th>
+                    <th>구분</th>
+                    <th>인용 / 감상 본문</th>
+                    <th>좋아요</th>
+                    <th>등록 일시</th>
+                    <th>관리 조치</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${pagePosts.map(p => {
+                    const book = db.contents.find(b => b.id === p.contentId);
+                    return `
+                      <tr>
+                        <td style="font-family:monospace; font-size:11.5px; color:var(--text-muted);">${p.id}</td>
+                        <td><strong>${esc(p.nickname || '익명')}</strong></td>
+                        <td>
+                          <div style="font-weight:700; color:var(--text-main);">${esc(book ? book.title : '등록 도서')}</div>
+                          <div style="font-size:11px; color:var(--text-muted);">${p.point ? p.point + 'p 기록' : '리뷰'}</div>
+                        </td>
+                        <td><span class="badge badge-primary">${esc(p.memoType || 'QUOTE')}</span></td>
+                        <td style="max-width:320px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${esc(p.text || p.review || '')}">
+                          "${esc(p.text || p.review || '')}"
+                        </td>
+                        <td>❤️ <strong>${p.likes || 0}</strong></td>
+                        <td>${fmtDate(p.createdAt)}</td>
+                        <td>
+                          <button class="btn btn-sm btn-danger" onclick="deletePostAction('${p.id}')">🗑 삭제</button>
+                        </td>
+                      </tr>
+                    `;
+                  }).join('') || `<tr><td colspan="8" style="text-align:center; padding:30px; color:var(--text-muted);">등록된 독서 카드가 없습니다.</td></tr>`}
+                </tbody>
+              </table>
+            </div>
+            ${renderPaginationHtml(postPage, totalPostPages, 'changePostPage', allPosts.length)}
+          </div>
+        ` : `
+          <!-- Full Width Comments Table (50 per page) -->
+          <div class="data-table-card">
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th>댓글 ID</th>
+                    <th>작성자</th>
+                    <th>댓글 본문 내용</th>
+                    <th>대상 포스트 ID</th>
+                    <th>등록 일시</th>
+                    <th>관리 조치</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${pageComments.map(c => `
+                    <tr>
+                      <td style="font-family:monospace; font-size:11.5px; color:var(--text-muted);">${c.id}</td>
+                      <td><strong>${esc(c.nickname || '익명')}</strong></td>
+                      <td style="max-width:380px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${esc(c.text)}">
+                        ${esc(c.text)}
+                      </td>
+                      <td style="font-family:monospace; font-size:11.5px;">${esc(c.postId || '-')}</td>
+                      <td>${fmtDate(c.createdAt)}</td>
+                      <td>
+                        <button class="btn btn-sm btn-danger" onclick="deleteCommentAction('${c.id}')">🗑 삭제</button>
+                      </td>
+                    </tr>
+                  `).join('') || `<tr><td colspan="6" style="text-align:center; padding:30px; color:var(--text-muted);">등록된 댓글이 없습니다.</td></tr>`}
+                </tbody>
+              </table>
+            </div>
+            ${renderPaginationHtml(commentPage, totalCommentPages, 'changeCommentPage', allComments.length)}
+          </div>
+        `}
+      `;
+    }
+
+    async function deletePostAction(id) {
+      if (confirm('선택한 독서 카드를 삭제하시겠습니까?\nSupabase DB에서도 즉시 지워집니다.')) {
+        db.posts = db.posts.filter(p => p.id !== id);
+        saveDB();
+
+        if (supabaseClient) {
+          try {
+            await supabaseClient.from('posts').delete().eq('id', String(id));
+          } catch (e) {
+            console.warn('Supabase delete post error:', e);
+          }
+        }
+
+        logAdminAction('독서 카드 삭제', `포스트ID ${id} Supabase 연동 삭제`);
+        showToast('독서 카드가 Supabase DB 및 마스터 서버에서 완전히 삭제되었습니다.');
+        renderCurrentView();
+      }
+    }
+
+    async function deleteCommentAction(id) {
+      if (confirm('선택한 댓글을 삭제하시겠습니까?\nSupabase DB에서도 즉시 지워집니다.')) {
+        db.comments = db.comments.filter(c => c.id !== id);
+        saveDB();
+
+        if (supabaseClient) {
+          try {
+            await supabaseClient.from('comments').delete().eq('id', String(id));
+          } catch (e) {
+            console.warn('Supabase delete comment error:', e);
+          }
+        }
+
+        logAdminAction('댓글 삭제', `댓글ID ${id} Supabase 연동 삭제`);
+        showToast('댓글이 Supabase DB 및 마스터 서버에서 완전히 삭제되었습니다.');
+        renderCurrentView();
+      }
+    }
+
+    /* 6. Announcements View Pagination (25 items per page) */
+    let annPage = 1;
+    const ANN_PAGE_SIZE = 25;
+
+    function changeAnnPage(p) {
+      annPage = p;
+      renderAnnouncementsView(document.getElementById('viewContainer'));
+    }
+
+    function renderAnnouncementsView(container) {
+      const allAnns = db.announcements || [];
+      const totalAnnPages = Math.ceil(allAnns.length / ANN_PAGE_SIZE) || 1;
+      if (annPage > totalAnnPages) annPage = totalAnnPages;
+      if (annPage < 1) annPage = 1;
+
+      const pageAnns = allAnns.slice((annPage - 1) * ANN_PAGE_SIZE, annPage * ANN_PAGE_SIZE);
+
+      container.innerHTML = `
+        <div class="filter-bar">
+          <button class="btn btn-primary" onclick="openAddAnnouncementModal()">📢 새 시스템 공지 등록</button>
+        </div>
+
+        <div class="data-table-card">
+          <div class="table-responsive">
+            <table>
+              <thead>
+                <tr>
+                  <th>제목</th>
+                  <th>공지 본문 내용</th>
+                  <th>노출 상태</th>
+                  <th>등록 일시</th>
+                  <th>관리</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${pageAnns.map(a => `
+                  <tr>
+                    <td><strong style="color:var(--text-main); font-size:14px;">${esc(a.title)}</strong></td>
+                    <td style="max-width:300px;">${esc(a.content)}</td>
+                    <td>${a.active ? '<span class="badge badge-success">🟢 앱 노출 중</span>' : '<span class="badge badge-muted">⚪ 비활성</span>'}</td>
+                    <td>${fmtDate(a.createdAt)}</td>
+                    <td>
+                      <div style="display:flex; gap:6px;">
+                        <button class="btn btn-sm btn-secondary" onclick="toggleAnnouncementActive('${a.id}')">${a.active ? '비활성화' : '활성화'}</button>
+                        <button class="btn btn-sm btn-danger" onclick="deleteAnnouncementAction('${a.id}')">🗑 삭제</button>
+                      </div>
+                    </td>
+                  </tr>
+                `).join('') || `<tr><td colspan="5" style="text-align:center; padding:30px; color:var(--text-muted);">등록된 공지사항이 없습니다.</td></tr>`}
+              </tbody>
+            </table>
+          </div>
+          ${renderPaginationHtml(annPage, totalAnnPages, 'changeAnnPage', allAnns.length)}
+        </div>
+      `;
+    }
+
+    function openAddAnnouncementModal() {
+      const target = document.getElementById('modalTarget');
+      target.innerHTML = `
+        <div class="modal-overlay" onclick="if(event.target===this) closeModal();">
+          <div class="modal-box">
+            <div class="modal-header">
+              <h3>📢 새 시스템 공지사항 등록</h3>
+              <button class="close-modal-btn" onclick="closeModal()">✕</button>
+            </div>
+            <form onsubmit="saveAnnouncement(event)">
+              <div class="form-group">
+                <label>공지사항 제목 *</label>
+                <input type="text" class="form-control" id="ann-title" placeholder="예: [안내] 시스템 서비스 점검 안내" required>
+              </div>
+              <div class="form-group">
+                <label>공지사항 상세 내용 *</label>
+                <textarea class="form-control" id="ann-content" placeholder="사용자들에게 보여질 공지 메시지..." required></textarea>
+              </div>
+              <div class="form-actions">
+                <button type="button" class="btn btn-secondary" onclick="closeModal()">취소</button>
+                <button type="submit" class="btn btn-primary">📢 등록 및 게시</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      `;
+    }
+
+    function saveAnnouncement(e) {
+      e.preventDefault();
+      const newAnn = {
+        id: 'ann_' + Date.now(),
+        title: document.getElementById('ann-title').value.trim(),
+        content: document.getElementById('ann-content').value.trim(),
+        active: true,
+        createdAt: Date.now()
+      };
+      if (!db.announcements) db.announcements = [];
+      db.announcements.unshift(newAnn);
+      saveDB();
+      logAdminAction('공지사항 등록', `'${newAnn.title}' 공지 게시`);
+      showToast('새 공지사항이 전송되었습니다.');
+      closeModal();
+      renderCurrentView();
+    }
+
+    function toggleAnnouncementActive(id) {
+      const ann = db.announcements.find(a => a.id === id);
+      if (ann) {
+        ann.active = !ann.active;
+        saveDB();
+        showToast('공지 노출 상태가 변경되었습니다.');
+        renderCurrentView();
+      }
+    }
+
+    function deleteAnnouncementAction(id) {
+      if (confirm('공지사항을 삭제하시겠습니까?')) {
+        db.announcements = db.announcements.filter(a => a.id !== id);
+        saveDB();
+        showToast('공지사항이 삭제되었습니다.');
+        renderCurrentView();
+      }
+    }
+
+    /* 7. Settings & Audit Logs View */
+    function renderSettingsView(container) {
+      container.innerHTML = `
+        <div class="charts-grid" style="grid-template-columns:1fr 2fr;">
+          <!-- DB Backup & Reset Controls -->
+          <div class="data-table-card" style="padding:20px;">
+            <h3 style="font-size:16px; font-weight:800; margin-bottom:12px;">💾 DB 백업 & 시스템 데이터 복구</h3>
+            <p style="font-size:12.5px; color:var(--text-muted); margin-bottom:20px; line-height:1.6;">
+              현재 LocalStorage 상태를 JSON 파일로 다운로드하여 백업하거나, 기존 데이터를 복구하고 데모 상태로 초기화할 수 있습니다.
+            </p>
+            <div style="display:flex; flex-direction:column; gap:10px;">
+              <button class="btn btn-primary" onclick="exportDBData()">📥 전체 DB JSON 다운로드 백업</button>
+              <button class="btn btn-secondary" onclick="document.getElementById('importFile').click()">📤 DB JSON 파일 업로드 복원</button>
+              <input type="file" id="importFile" accept=".json" style="display:none;" onchange="importDBData(this)">
+              <button class="btn btn-secondary" onclick="exportBooksCSV()">📊 도서 목록 CSV 엑셀 내보내기</button>
+              <button class="btn btn-secondary" onclick="exportPostsCSV()">📊 독서카드 목록 CSV 엑셀 내보내기</button>
+              <button class="btn btn-danger" style="margin-top:14px;" onclick="resetToDemoData()">🔄 데모 데이터셋 완전 재설정</button>
+            </div>
+          </div>
+
+          <!-- Audit Logs Table -->
+          <div class="data-table-card">
+            <div style="padding:16px 20px; border-bottom:1px solid var(--card-border); font-size:15px; font-weight:800;">📜 관리자 조치 감사 로그 (Audit Logs)</div>
+            <div class="table-responsive" style="max-height:450px; overflow-y:auto;">
+              <table>
+                <thead>
+                  <tr>
+                    <th>일시</th>
+                    <th>관리자 조치 구분</th>
+                    <th>상세 조치 내용</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${(db.adminLogs || []).map(l => `
+                    <tr>
+                      <td style="font-size:11.5px; color:var(--text-muted); whitespace:nowrap;">${fmtDate(l.timestamp)}</td>
+                      <td><span class="badge badge-primary">${esc(l.action)}</span></td>
+                      <td>${esc(l.details)}</td>
+                    </tr>
+                  `).join('') || `<tr><td colspan="3" style="text-align:center; padding:20px; color:var(--text-muted);">감사 로그가 없습니다.</td></tr>`}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function exportDBData() {
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(db, null, 2));
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.setAttribute("href", dataStr);
+      downloadAnchor.setAttribute("download", `sentence_collector_backup_${Date.now()}.json`);
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+      showToast('DB 백업 파일이 다운로드되었습니다.');
+    }
+
+    function downloadCSV(csvContent, fileName) {
+      const blob = new Blob(["\uFEFF" + csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.setAttribute('href', url);
+      link.setAttribute('download', fileName);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    function exportBooksCSV() {
+      let csv = 'ID,도서제목,저자,출판사,장르,총페이지,평점,완독자수,ISBN\n';
+      db.contents.forEach(b => {
+        csv += `"${b.id}","${(b.title||'').replace(/"/g, '""')}","${(b.creator||'').replace(/"/g, '""')}","${(b.publisher||'').replace(/"/g, '""')}","${b.genre||''}","${b.totalPoint||0}","${b.rating||0}","${b.readerCount||0}","${b.isbn||''}"\n`;
+      });
+      downloadCSV(csv, `sentence_collector_books_${Date.now()}.csv`);
+      logAdminAction('CSV 엑셀 내보내기', '도서 DB CSV 파일 다운로드');
+      showToast('📊 도서 데이터 CSV 엑셀 파일이 다운로드되었습니다.');
+    }
+
+    function exportPostsCSV() {
+      let csv = 'ID,도서ID,작성자,구분,본문내용,좋아요,작성일시\n';
+      db.posts.forEach(p => {
+        csv += `"${p.id}","${p.contentId||''}","${(p.nickname||'').replace(/"/g, '""')}","${p.memoType||''}","${(p.text||p.review||'').replace(/"/g, '""')}","${p.likes||0}","${fmtDate(p.createdAt)}"\n`;
+      });
+      downloadCSV(csv, `sentence_collector_posts_${Date.now()}.csv`);
+      logAdminAction('CSV 엑셀 내보내기', '독서카드 DB CSV 파일 다운로드');
+      showToast('📊 독서카드 데이터 CSV 엑셀 파일이 다운로드되었습니다.');
+    }
+
+    function resetToDemoData() {
+      if (confirm('전체 데이터베이스를 초기 데모 상태로 재설정하시겠습니까? 모든 변경 데이터가 초기화됩니다.')) {
+        db = initDemoDB();
+        saveDB();
+        showToast('초기 데모 데이터셋으로 복원되었습니다.');
+        renderCurrentView();
+      }
+    }
+
+    function closeModal() {
+      document.getElementById('modalTarget').innerHTML = '';
+    }
+
+    /* ---------- Realtime Storage Sync Listener ---------- */
+    window.addEventListener('storage', (e) => {
+      if (e.key === DB_KEY) {
+        db = loadDB();
+        renderCurrentView();
+        showToast('🔄 다른 탭의 데이터 변경사항이 실시간 동기화되었습니다.');
+      }
+    });
+
+    /* ---------- Initial Boot ---------- */
+    renderCurrentView();
+    if (typeof syncFromSupabase === 'function') {
+      syncFromSupabase();
+    }
+  </script>
+</body>
+</html>
