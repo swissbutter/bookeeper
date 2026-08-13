@@ -1,0 +1,125 @@
+/* Typing Practice Component Styles - Ultra-Clean Zen & Editorial Theme */
+
+.typing-zen-container {
+  letter-spacing: 0.03em;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Font Choices - Unified Default Pretendard Sans-Serif */
+.typing-font-batang,
+.typing-font-serif,
+.typing-font-maru,
+.typing-font-sans {
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+}
+
+/* Line Wrapping & Layout Fix */
+#typing-display {
+  word-break: break-all;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+  max-width: 100%;
+  line-height: 1.65 !important;
+  letter-spacing: -0.01em !important;
+}
+
+/* Character Base - Fixed CJK Glyph Widths for Zero Character Width Shift */
+.char-item {
+  display: inline-block;
+  width: 1em;
+  text-align: center;
+  position: relative;
+  transition: color 0.06s ease;
+  padding: 0;
+  margin: 0;
+  font-weight: 500 !important;
+  background-color: transparent !important;
+  word-break: break-all;
+  white-space: pre-wrap;
+  line-height: 1.65 !important;
+  vertical-align: top;
+}
+
+.char-space {
+  width: 0.35em !important;
+}
+
+.char-punct {
+  width: 0.45em !important;
+}
+
+/* Default Untyped Character - Clear Light Silver Gray */
+.char-default {
+  color: #a1a1aa !important;
+}
+.dark .char-default {
+  color: #6b7280 !important;
+}
+
+/* Correctly Typed Character - Crisp Jet Black */
+.char-correct {
+  color: #000000 !important;
+}
+.dark .char-correct {
+  color: #ffffff !important;
+}
+
+/* Incorrectly Typed Character - Bold Vivid Red Text & Red Dashed Underline */
+.char-incorrect {
+  color: #dc2626 !important;
+  border-bottom: 1.5px dashed #dc2626 !important;
+}
+.dark .char-incorrect {
+  color: #ef4444 !important;
+  border-bottom: 1.5px dashed #ef4444 !important;
+}
+
+/* Current Active Caret Character */
+.char-current {
+  color: #a1a1aa !important;
+}
+.dark .char-current {
+  color: #6b7280 !important;
+}
+
+/* Sliding Smooth Continuous Caret Indicator */
+#typing-active-caret {
+  position: absolute;
+  height: 2px;
+  background-color: #000000;
+  border-radius: 1px;
+  pointer-events: none;
+  transition: left 0.13s cubic-bezier(0.2, 0.9, 0.3, 1), top 0.13s cubic-bezier(0.2, 0.9, 0.3, 1), width 0.13s ease;
+  animation: typingCaretPulse 0.75s infinite ease-in-out alternate;
+  z-index: 20;
+}
+.dark #typing-active-caret {
+  background-color: #ffffff;
+  animation: typingCaretPulseDark 0.75s infinite ease-in-out alternate;
+}
+
+@keyframes typingCaretPulse {
+  0% { opacity: 0.15; }
+  100% { opacity: 1; }
+}
+
+@keyframes typingCaretPulseDark {
+  0% { opacity: 0.15; }
+  100% { opacity: 1; }
+}
+
+/* Stat Box Numbers */
+.zen-stat-num {
+  font-family: 'Noto Serif KR', 'Pretendard', serif;
+  font-weight: 700;
+  color: #1c1917;
+}
+.dark .zen-stat-num {
+  color: #f5f4f0;
+}
+
+/* Soft Progress Glow */
+.typing-progress-bar {
+  transition: width 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
