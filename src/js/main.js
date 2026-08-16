@@ -100,6 +100,13 @@ function initApp() {
     if (backDetailBtn) {
       setState({ tab: 'library', activeBookId: null });
     }
+
+    // Floating Action Button (+) in Book Detail Page & App
+    const addBookRecordBtn = e.target.closest('#btn-add-book-record');
+    if (addBookRecordBtn) {
+      const bookId = addBookRecordBtn.dataset.bookId || state.activeBookId || '';
+      setState({ modal: { type: 'ADD_RECORD', defaultBookId: bookId } });
+    }
   });
 
   // Initial Render Execution

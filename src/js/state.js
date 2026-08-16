@@ -326,6 +326,55 @@ export const INITIAL_DB = {
       mine: true,
       likes: 44,
       createdAt: new Date(Date.now() - 5 * 24 * 3600 * 1000).toISOString()
+    },
+    {
+      id: 'r13',
+      bookId: 'b1',
+      bookTitle: '데미안',
+      author: '헤르만 헤세',
+      publisher: '민음사',
+      quote: '청춘의 방황 속에서 나 자신에게로 이르는 길을 밝혀준 인생 최고의 걸작. 헤세의 영혼이 담긴 필독서입니다.',
+      thought: '',
+      page: 0,
+      type: 'REVIEW',
+      rating: 5.0,
+      spoil: false,
+      mine: true,
+      likes: 64,
+      createdAt: new Date(Date.now() - 2 * 3600 * 1000).toISOString()
+    },
+    {
+      id: 'r14',
+      bookId: 'b1',
+      bookTitle: '데미안',
+      author: '헤르만 헤세',
+      publisher: '민음사',
+      quote: '내 속에서 솟아 나오려는 것, 바로 그것을 나는 살아보려 했다. 왜 그것이 그토록 어려웠을까.',
+      thought: '진정한 나 자신으로 살아간다는 것에 대한 깊은 울림과 질문.',
+      page: 18,
+      type: 'QUOTE',
+      spoil: false,
+      mine: false,
+      userName: '고요한 독자',
+      likes: 58,
+      createdAt: new Date(Date.now() - 6 * 3600 * 1000).toISOString()
+    },
+    {
+      id: 'r15',
+      bookId: 'b1',
+      bookTitle: '데미안',
+      author: '헤르만 헤세',
+      publisher: '민음사',
+      quote: '헤르만 헤세의 문장 하나하나가 인생의 방황을 따스하게 감싸안아 줍니다. 10대 때 읽었을 때와 30대가 되어 읽었을 때 전해지는 무게감이 전혀 달라지는 명작.',
+      thought: '',
+      page: 0,
+      type: 'REVIEW',
+      rating: 4.8,
+      spoil: false,
+      mine: false,
+      userName: '달빛 수집가',
+      likes: 72,
+      createdAt: new Date(Date.now() - 1 * 24 * 3600 * 1000).toISOString()
     }
   ],
   typingNotes: [],
@@ -375,6 +424,11 @@ export function updateDBSilent(mutator) {
 export const state = {
   tab: 'feed', // 'feed' | 'library' | 'typing' | 'my'
   feedSection: 'POPULAR',
+  feedTypeFilter: 'ALL',
+  feedCols: 1, // 1 | 2 | 3 단 피드 레이아웃 설정
+  libCols: 1, // 1 | 2 | 3 단 내 서재 레이아웃 설정
+  noteCols: 1, // 1 | 2 | 3 단 필사 기록 레이아웃 설정
+  detailCols: 1, // 1 | 2 | 3 단 책 상세 레이아웃 설정
   libFilter: 'ACTIVE',
   libQuery: '',
   detailTab: 'MY',
@@ -388,8 +442,6 @@ export const state = {
   typingPracticeMode: 'PRACTICE', // Default: 'PRACTICE' (수치 안보이는 순수 필사) | 'GAME' (타자게임)
   typingSourceMode: 'RECOMMENDED',
   autoNextQuote: false, // Default: false (기본적으로 꺼진 상태로 시작)
-  soundEnabled: true,
-  soundType: 'mechanical',
   theme: 'light',
   overlayStack: [],
   modal: null
