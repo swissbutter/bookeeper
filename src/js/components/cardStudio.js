@@ -15,7 +15,7 @@ export function renderCardStudioOverlay(container, data) {
   let currentFont = 'Noto Serif KR';
 
   container.innerHTML = `
-    <div class="fixed inset-0 bg-stone-950/80 backdrop-blur-md z-50 flex flex-col pointer-events-auto animate-fade-in">
+    <div class="fixed inset-0 bg-stone-950/80 backdrop-blur-md z-50 flex flex-col pointer-events-auto">
       
       <!-- Top Bar -->
       <div class="px-5 py-4 border-b border-stone-800 flex items-center justify-between text-white bg-stone-950">

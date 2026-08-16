@@ -17,20 +17,35 @@ export function renderHeader() {
   };
 
   header.innerHTML = `
-    <div class="flex items-center gap-2.5">
-      <span class="material-symbols-outlined text-stone-900 dark:text-stone-100 text-2xl md:hidden">auto_stories</span>
-      <h1 class="text-base sm:text-lg font-bold font-serif text-stone-900 dark:text-stone-100 tracking-tight">${titles[state.tab] || '문장수집가'}</h1>
+    <div class="flex items-center gap-2">
+      <div class="w-8 h-8 rounded-xl bg-amber-700/10 dark:bg-amber-400/10 text-amber-800 dark:text-amber-300 flex items-center justify-center border border-amber-200/60 dark:border-amber-800/60 shadow-2xs">
+        <span class="material-symbols-outlined text-lg">auto_stories</span>
+      </div>
+      <div>
+        <h1 class="text-xs text-stone-400 dark:text-stone-500 font-sans font-medium">문장수집가 2nd</h1>
+        <div class="text-sm font-bold font-serif text-stone-900 dark:text-stone-100 tracking-tight leading-none">${titles[state.tab] || '문장수집가'}</div>
+      </div>
     </div>
 
-    <div class="flex items-center gap-1.5">
-      <button id="btn-open-admin" class="p-2 text-stone-600 dark:text-stone-400 hover:text-amber-800 dark:hover:text-amber-300 hover:bg-stone-100 dark:hover:bg-stone-800 rounded-xl transition-colors cursor-pointer" title="관리자 센터 대시보드">
+    <div class="flex items-center gap-1">
+      <button id="btn-open-admin" class="p-2 text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-100 hover:bg-stone-100 dark:hover:bg-stone-800 rounded-xl transition-colors cursor-pointer" title="관리자 센터">
         <span class="material-symbols-outlined text-xl">admin_panel_settings</span>
       </button>
-      <button id="btn-toggle-theme" class="p-2 text-stone-600 dark:text-stone-400 hover:text-stone-950 dark:hover:text-stone-100 hover:bg-stone-100 dark:hover:bg-stone-800 rounded-xl transition-colors cursor-pointer" title="테마 변경">
+      <button id="btn-toggle-theme" class="p-2 text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-100 hover:bg-stone-100 dark:hover:bg-stone-800 rounded-xl transition-colors cursor-pointer" title="테마 변경">
         <span class="material-symbols-outlined text-xl">${state.theme === 'dark' ? 'light_mode' : 'dark_mode'}</span>
       </button>
     </div>
   `;
+
+  header.querySelector('#btn-toggle-theme')?.addEventListener('click', () => {
+    const nextTheme = state.theme === 'dark' ? 'light' : 'dark';
+    document.documentElement.className = nextTheme;
+    setState({ theme: nextTheme });
+  });
+
+  header.querySelector('#btn-open-admin')?.addEventListener('click', () => {
+    setState({ tab: 'admin' });
+  });
 }
 
 export function renderBottomNav() {
@@ -38,22 +53,32 @@ export function renderBottomNav() {
   if (!nav) return;
 
   const tabs = [
-    { id: 'feed', label: '오늘의 문장', icon: 'explore' },
-    { id: 'library', label: '내 서재', icon: 'collections_bookmark' },
-    { id: 'typing', label: '필사 노트', icon: 'keyboard' },
-    { id: 'my', label: '프로필', icon: 'person' }
+    { id: 'feed', label: '문장', icon: 'explore' },
+    { id: 'library', label: '서재', icon: 'collections_bookmark' },
+    { id: 'typing', label: '필사', icon: 'keyboard' },
+    { id: 'my', label: '마이', icon: 'person' }
   ];
 
   nav.innerHTML = tabs.map(tab => {
     const isActive = state.tab === tab.id;
-    const activeClass = isActive ? 'text-stone-950 font-bold scale-105 bg-stone-100' : 'text-stone-400 hover:text-stone-600';
+    const activeClass = isActive 
+      ? 'bg-stone-900 dark:bg-stone-100 text-white dark:text-stone-900 font-bold shadow-xs' 
+      : 'text-stone-500 dark:text-stone-400 hover:text-stone-800 dark:hover:text-stone-200';
+    
     return `
-      <button data-tab="${tab.id}" class="nav-tab-item flex flex-col items-center justify-center py-1.5 px-3 rounded-5px transition-all cursor-pointer ${activeClass}">
-        <span class="material-symbols-outlined text-2xl mb-0.5">${tab.icon}</span>
-        <span class="text-xs font-sans tracking-tight">${tab.label}</span>
+      <button data-tab="${tab.id}" class="nav-tab-item flex-1 flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-1.5 text-xs py-1.5 px-2 rounded-xl transition-all cursor-pointer ${activeClass}">
+        <span class="material-symbols-outlined text-lg sm:text-xl">${tab.icon}</span>
+        <span class="font-sans font-medium tracking-tight text-[11px] sm:text-xs">${tab.label}</span>
       </button>
     `;
   }).join('');
+
+  nav.querySelectorAll('.nav-tab-item').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const tabId = e.currentTarget.dataset.tab;
+      setState({ tab: tabId });
+    });
+  });
 }
 
 export function renderDesktopSidebar() {
@@ -107,4 +132,11 @@ export function renderDesktopSidebar() {
       </div>
     </div>
   `;
+
+  sidebar.querySelectorAll('button[data-tab]').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const tabId = e.currentTarget.dataset.tab;
+      setState({ tab: tabId });
+    });
+  });
 }

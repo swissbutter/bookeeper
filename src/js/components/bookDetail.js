@@ -6,8 +6,32 @@
 import { state, setState, db, updateDB, updateDBSilent } from '../state.js';
 import { formatRelativeTime } from '../utils/dateUtils.js';
 import { DEFAULT_BOOK_COVER } from '../utils/imageUtils.js';
+import { renderRecordCard, attachRecordCardEvents } from './feed.js';
 
-const UNIFIED_BARCODE_COLOR = '#B45309';
+const RANDOM_MARK_COLORS = [
+  '#E11D48', // Vibrant Rose Pink
+  '#EA580C', // Bright Orange
+  '#D97706', // Amber Gold
+  '#16A34A', // Emerald Green
+  '#0284C7', // Cyan Blue
+  '#2563EB', // Royal Indigo
+  '#7C3AED', // Deep Violet
+  '#DB2777', // Vivid Magenta
+  '#0891B2', // Ocean Teal
+  '#65A30D'  // Lime Lime
+];
+
+function getMarkColor(mk, index = 0) {
+  if (!mk) return RANDOM_MARK_COLORS[0];
+  const str = String(mk.id || mk.page || index);
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = (hash << 5) - hash + str.charCodeAt(i);
+    hash |= 0;
+  }
+  const idx = Math.abs(hash) % RANDOM_MARK_COLORS.length;
+  return RANDOM_MARK_COLORS[idx];
+}
 
 function esc(str) {
   if (!str) return '';
@@ -20,7 +44,7 @@ function barcodeHtml(book, records, activeDetailTab = 'MY') {
   const cur = Math.min(book.curPage || 0, total);
 
   const isMineTab = (activeDetailTab === 'MY');
-  const marks = records.filter(p => p.page != null && (isMineTab ? p.mine !== false : p.mine === false));
+  const marks = records.filter(p => p.type !== 'REVIEW' && p.page != null && p.page > 0 && (isMineTab ? p.mine !== false : p.mine === false));
 
   marks.sort((a, b) => (a.page || 0) - (b.page || 0));
 
@@ -36,11 +60,11 @@ function barcodeHtml(book, records, activeDetailTab = 'MY') {
     <div class="barcode-wrap" id="detailBarcodeWrap" style="cursor: grab; user-select: none; touch-action: none; position: relative;">
       <div class="ticks">${ticksHtml}</div>
       ${marks.map((mk, i) => {
-        const color = UNIFIED_BARCODE_COLOR;
+        const color = getMarkColor(mk, i);
         const posPct = Math.min(Math.max((mk.page / total) * 100, 2), 98);
         const isBottom = (i % 2 === 1);
         return `
-          <div class="post-mark" data-post-id="${mk.id}" data-post-point="${mk.page}" data-is-mine="${mk.mine !== false ? '1' : '0'}" style="left:${posPct}%; background:${color}; box-shadow:0 0 3px ${color}; cursor:pointer;" title="${mk.page}p 문장 기록">
+          <div class="post-mark" data-post-id="${mk.id}" data-post-point="${mk.page}" data-is-mine="${mk.mine !== false ? '1' : '0'}" style="left:${posPct}%; background:${color}; box-shadow:0 0 4px ${color}; cursor:pointer;" title="${mk.page}p 문장 기록">
             <span class="post-mark-label ${isBottom ? 'is-bottom' : 'is-top'}" data-post-id="${mk.id}" data-post-point="${mk.page}" data-is-mine="${mk.mine !== false ? '1' : '0'}" style="background:${color}; pointer-events:auto; cursor:pointer; ${isBottom ? 'bottom:3px; top:auto;' : 'top:3px; bottom:auto;'}">${mk.page}p</span>
           </div>
         `;
@@ -57,7 +81,7 @@ function showBarcodeOverlapPopup(evt, nearbyMarks, barcodeWrap, container) {
   popup.className = 'barcode-overlap-popup';
 
   const itemsHtml = nearbyMarks.map((mk, idx) => {
-    const color = UNIFIED_BARCODE_COLOR;
+    const color = getMarkColor(mk, idx);
     const previewText = esc(mk.quote ? (mk.quote.length > 20 ? mk.quote.slice(0, 20) + '...' : mk.quote) : '기록 문장');
     const author = esc(mk.author || '익명');
     return `
@@ -232,13 +256,19 @@ function attachBarcodeDragEvents(container, book, allBookRecords) {
       const markEl = (initialTarget && initialTarget.closest) ? initialTarget.closest('[data-post-id]') : null;
 
       let nearbyMarks = [];
-      if (markEl && markEl.dataset && markEl.dataset.postPoint != null) {
-        const clickedPoint = parseFloat(markEl.dataset.postPoint);
-        const clickedPct = (clickedPoint / totalPoint) * 100;
-        nearbyMarks = activeTabPosts.filter(p => {
-          const pPct = (p.page / totalPoint) * 100;
-          return Math.abs(pPct - clickedPct) <= 5.0;
-        });
+      if (markEl && markEl.dataset && markEl.dataset.postId) {
+        const clickedPostId = markEl.dataset.postId;
+        const exactPost = activeTabPosts.find(p => p.id === clickedPostId);
+        if (exactPost) {
+          nearbyMarks = [exactPost];
+        } else if (markEl.dataset.postPoint != null) {
+          const clickedPoint = parseFloat(markEl.dataset.postPoint);
+          const clickedPct = (clickedPoint / totalPoint) * 100;
+          nearbyMarks = activeTabPosts.filter(p => {
+            const pPct = (p.page / totalPoint) * 100;
+            return Math.abs(pPct - clickedPct) <= 5.0;
+          });
+        }
       } else {
         nearbyMarks = activeTabPosts.filter(p => {
           const pPct = (p.page / totalPoint) * 100;
@@ -259,14 +289,14 @@ function attachBarcodeDragEvents(container, book, allBookRecords) {
           if (cardEl) {
             cardEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
             cardEl.style.transition = 'all 0.3s ease';
-            cardEl.style.outline = '2px solid #1C1917';
-            cardEl.style.boxShadow = '0 0 14px rgba(28, 25, 24, 0.4)';
+            cardEl.style.outline = '3px solid #F59E0B';
+            cardEl.style.boxShadow = '0 0 16px rgba(245, 158, 11, 0.6)';
             setTimeout(() => {
               cardEl.style.outline = 'none';
               cardEl.style.boxShadow = 'none';
-            }, 1800);
+            }, 2000);
           }
-        }, 50);
+        }, 60);
       }
     }
   }
@@ -317,14 +347,34 @@ export function renderBookDetailPage(container, targetBookId) {
 
   const activeTab = state.detailTab || 'MY';
   const typeFilter = state.myPostTypeFilter || 'ALL';
-  const sortType = state.myPostSort || 'LATEST';
+  const sortType = state.myPostSort || 'PAGE';
+  const cols = state.detailCols || 1;
+
+  const typeLabels = {
+    ALL: '전체 유형',
+    QUOTE: '✍️ 인용구',
+    THOUGHT: '💭 내생각',
+    QUESTION: '❓ 의문점',
+    SUMMARY: '📋 요약',
+    REVIEW: '⭐ 리뷰'
+  };
+  const selectedTypeLabel = typeLabels[typeFilter] || '전체 유형';
+
+  let recordGridClass = 'space-y-3';
+  if (cols === 2) {
+    recordGridClass = 'grid grid-cols-1 sm:grid-cols-2 gap-3.5 items-start';
+  } else if (cols === 3) {
+    recordGridClass = 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 items-start';
+  }
 
   let displayRecords = (activeTab === 'MY' ? myRecords : commRecords).filter(r => {
     if (typeFilter === 'ALL') return true;
     return (r.type || 'QUOTE') === typeFilter;
   });
 
-  if (sortType === 'LATEST') {
+  if (sortType === 'PAGE') {
+    displayRecords.sort((a, b) => (a.page || 0) - (b.page || 0));
+  } else if (sortType === 'LATEST') {
     displayRecords.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
   } else if (sortType === 'LIKES') {
     displayRecords.sort((a, b) => (b.likes || 0) - (a.likes || 0));
@@ -354,7 +404,7 @@ export function renderBookDetailPage(container, targetBookId) {
   }
 
   container.innerHTML = `
-    <div class="space-y-3 font-sans max-w-4xl mx-auto w-full pt-3 sm:pt-4 pb-2">
+    <div class="space-y-3.5 font-sans w-full pb-6 -mt-3 sm:-mt-4">
       
       <!-- Detail Header Bar with Action & Options -->
       <div class="bg-transparent py-0.5 px-0 flex items-center justify-between gap-3 w-full border-none shadow-none mb-0">
@@ -388,29 +438,29 @@ export function renderBookDetailPage(container, targetBookId) {
         </div>
       </div>
 
-      <!-- Side-by-Side Book Info Header Card (Foreground Layer) -->
-      <div class="book-detail-info-card bg-transparent p-0 pt-0.5 rounded-2xl border-none shadow-none flex flex-col sm:flex-row gap-5 items-start">
+      <!-- Responsive Book Info Header Card (Mobile: Centered / PC Desktop: Side-by-Side Left Aligned) -->
+      <div class="book-detail-info-card bg-transparent p-0 pt-0.5 rounded-2xl border-none shadow-none flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left gap-4 sm:gap-6">
         
-        <!-- Left Side: Book Cover (Enlarged for Prominent Presence) -->
-        <div class="book-cover detail flex-shrink-0 w-32 h-48 sm:w-36 sm:h-52 overflow-hidden rounded-xl shadow-lg bg-stone-100 border border-stone-200 dark:border-stone-800">
+        <!-- Book Cover (Mobile: Centered / PC Desktop: Left Aligned) -->
+        <div class="book-cover detail flex-shrink-0 w-32 h-48 sm:w-36 sm:h-52 overflow-hidden rounded-xl shadow-xl bg-stone-100 border border-stone-200 dark:border-stone-800 mx-auto sm:mx-0">
           <img src="${book.thumbnail || DEFAULT_BOOK_COVER}" alt="${esc(book.title)}" onerror="this.onerror=null; this.src='${DEFAULT_BOOK_COVER}';" class="w-full h-full object-cover" />
         </div>
 
-        <!-- Right Side: Title, Meta, Reader Count Pill, Star Rating, Brief Info & Status Chips -->
-        <div class="flex-1 min-w-0 space-y-2.5 w-full text-left">
+        <!-- Book Content: Title, Meta, Reader Count Pill, Star Rating, Brief Info & Status Chips -->
+        <div class="flex-1 min-w-0 space-y-2.5 w-full text-center sm:text-left flex flex-col items-center sm:items-start">
           
           <!-- 1. Title -->
-          <div class="flex items-center gap-2 flex-wrap">
-            <span class="font-serif font-bold text-xl text-stone-900 dark:text-stone-100 leading-snug">${esc(book.title)}</span>
+          <div class="flex items-center justify-center sm:justify-start gap-2 flex-wrap text-center sm:text-left w-full">
+            <h2 class="font-serif font-bold text-xl sm:text-2xl text-stone-900 dark:text-stone-100 leading-snug text-center sm:text-left">${esc(book.title)}</h2>
           </div>
 
           <!-- 2. Author · Publisher · Genre -->
-          <div class="text-xs text-stone-500 dark:text-stone-400 font-sans">
+          <div class="text-xs text-stone-500 dark:text-stone-400 font-sans text-center sm:text-left w-full">
             ${esc(book.author || '저자 미상')} · ${esc(book.publisher || '출판사 미상')} · ${esc(book.genre || '소설/문학')}
           </div>
 
           <!-- 3. Reader Count Pill & Star Rating (Side by Side) -->
-          <div class="flex items-center gap-2.5 flex-wrap pt-0.5">
+          <div class="flex items-center justify-center sm:justify-start gap-2.5 flex-wrap pt-0.5 w-full">
             <span class="inline-flex items-center gap-1 text-[11.5px] font-bold text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/60 px-2.5 py-1 rounded-lg border border-amber-200/60 dark:border-amber-800/60">
               <span>👥</span>
               <strong>${readerCount}명이</strong>
@@ -423,21 +473,21 @@ export function renderBookDetailPage(container, targetBookId) {
             </div>
           </div>
 
-          <!-- 4. Brief Book Description (Expandable 120 chars) -->
-          <div class="text-xs text-stone-600 dark:text-stone-300 leading-relaxed bg-stone-50 dark:bg-stone-800/60 p-3 rounded-xl border border-stone-200/60 dark:border-stone-700/60 font-sans">
+          <!-- 4. Brief Book Description -->
+          <div class="text-xs text-stone-600 dark:text-stone-300 leading-relaxed bg-stone-50 dark:bg-stone-800/60 p-3.5 rounded-xl border border-stone-200/60 dark:border-stone-700/60 font-sans text-center sm:text-left w-full">
             <span>${displayDesc}</span>${toggleBtnHtml}
           </div>
 
-          <!-- 5. Status Chips (보관함 / 읽는 중 / 완독) -->
-          <div class="grid grid-cols-3 gap-2 pt-1">
+          <!-- 5. Status Chips Grid -->
+          <div class="grid grid-cols-3 gap-2 pt-1 w-full">
             <button data-status="WANT" class="btn-change-status py-2 rounded-xl text-xs font-bold transition-all border cursor-pointer ${status === 'WANT' ? 'bg-stone-800 text-white border-stone-800 dark:bg-stone-100 dark:text-stone-900 dark:border-stone-100 shadow-sm' : 'bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400 border-stone-200/80 dark:border-stone-700 hover:bg-stone-200'}">
-              보관함
+              📦 보관함
             </button>
             <button data-status="ACTIVE" class="btn-change-status py-2 rounded-xl text-xs font-bold transition-all border cursor-pointer ${status === 'ACTIVE' ? 'bg-stone-800 text-white border-stone-800 dark:bg-stone-100 dark:text-stone-900 dark:border-stone-100 shadow-sm' : 'bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400 border-stone-200/80 dark:border-stone-700 hover:bg-stone-200'}">
-              읽는 중
+              📖 읽는 중
             </button>
             <button data-status="DONE" class="btn-change-status py-2 rounded-xl text-xs font-bold transition-all border cursor-pointer ${status === 'DONE' ? 'bg-stone-800 text-white border-stone-800 dark:bg-stone-100 dark:text-stone-900 dark:border-stone-100 shadow-sm' : 'bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400 border-stone-200/80 dark:border-stone-700 hover:bg-stone-200'}">
-              완독
+              🏆 완독
             </button>
           </div>
 
@@ -490,29 +540,66 @@ export function renderBookDetailPage(container, targetBookId) {
       <!-- Filter Controls & Post List -->
       <div class="space-y-3 font-sans">
         
-        <div class="flex items-center justify-between border-b border-stone-200/80 dark:border-stone-800 pb-2">
-          <div class="flex items-center gap-2">
-            <button data-sort="LATEST" class="btn-sort-records text-xs px-3 py-1 rounded-lg font-bold transition-all cursor-pointer ${sortType === 'LATEST' ? 'bg-stone-900 dark:bg-stone-100 text-white dark:text-stone-900' : 'bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400'}">최신순</button>
-            <button data-sort="LIKES" class="btn-sort-records text-xs px-3 py-1 rounded-lg font-bold transition-all cursor-pointer ${sortType === 'LIKES' ? 'bg-stone-900 dark:bg-stone-100 text-white dark:text-stone-900' : 'bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400'}">공감순</button>
+        <div class="flex items-center justify-between flex-wrap gap-2 border-b border-stone-200/80 dark:border-stone-800 pb-2">
+          <!-- Left: 최신순 / 공감순 / 전체 유형 필터 -->
+          <div class="flex items-center gap-2 flex-wrap">
+            <div class="h-[30px] inline-flex items-center gap-0.5 bg-stone-100 dark:bg-stone-800 p-0.5 rounded-lg border border-stone-200/80 dark:border-stone-700/60 shadow-2xs">
+              <button data-sort="PAGE" class="h-full btn-sort-records text-xs px-2.5 rounded-md font-bold flex items-center justify-center transition-all cursor-pointer ${sortType === 'PAGE' ? 'bg-white dark:bg-stone-700 text-stone-900 dark:text-stone-100 shadow-2xs' : 'text-stone-500 dark:text-stone-400 hover:text-stone-800 dark:hover:text-stone-200'}">페이지순</button>
+              <button data-sort="LATEST" class="h-full btn-sort-records text-xs px-2.5 rounded-md font-bold flex items-center justify-center transition-all cursor-pointer ${sortType === 'LATEST' ? 'bg-white dark:bg-stone-700 text-stone-900 dark:text-stone-100 shadow-2xs' : 'text-stone-500 dark:text-stone-400 hover:text-stone-800 dark:hover:text-stone-200'}">최신순</button>
+              <button data-sort="LIKES" class="h-full btn-sort-records text-xs px-2.5 rounded-md font-bold flex items-center justify-center transition-all cursor-pointer ${sortType === 'LIKES' ? 'bg-white dark:bg-stone-700 text-stone-900 dark:text-stone-100 shadow-2xs' : 'text-stone-500 dark:text-stone-400 hover:text-stone-800 dark:hover:text-stone-200'}">공감순</button>
+            </div>
+
+            <!-- Custom Floating Dropdown (Matching modal.js Search Target Dropdown Design) -->
+            <div class="relative inline-block text-left shrink-0">
+              <button id="detail-type-filter-btn" type="button" class="h-[30px] px-2.5 bg-stone-100 dark:bg-stone-800 border border-stone-200/80 dark:border-stone-700/60 rounded-lg text-xs font-bold text-stone-800 dark:text-stone-200 flex items-center gap-1 cursor-pointer focus:outline-none select-none hover:bg-stone-200/70 dark:hover:bg-stone-700/70 transition-colors shadow-2xs">
+                <span>${selectedTypeLabel}</span>
+                <span class="material-symbols-outlined text-sm text-stone-500">expand_more</span>
+              </button>
+
+              <div id="detail-type-filter-menu" class="hidden absolute left-0 top-full mt-1.5 w-36 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl shadow-2xl p-1 text-xs z-50 font-sans space-y-0.5">
+                <button type="button" data-value="ALL" class="detail-type-option-btn w-full px-3 py-2 text-left font-bold text-stone-800 dark:text-stone-200 hover:bg-stone-100 dark:hover:bg-stone-700/70 rounded-lg cursor-pointer transition-colors ${typeFilter === 'ALL' ? 'bg-stone-100 dark:bg-stone-700/70 text-amber-600 dark:text-amber-400' : ''}">
+                  전체 유형
+                </button>
+                <button type="button" data-value="QUOTE" class="detail-type-option-btn w-full px-3 py-2 text-left font-bold text-stone-800 dark:text-stone-200 hover:bg-stone-100 dark:hover:bg-stone-700/70 rounded-lg cursor-pointer transition-colors ${typeFilter === 'QUOTE' ? 'bg-stone-100 dark:bg-stone-700/70 text-amber-600 dark:text-amber-400' : ''}">
+                  ✍️ 인용구
+                </button>
+                <button type="button" data-value="THOUGHT" class="detail-type-option-btn w-full px-3 py-2 text-left font-bold text-stone-800 dark:text-stone-200 hover:bg-stone-100 dark:hover:bg-stone-700/70 rounded-lg cursor-pointer transition-colors ${typeFilter === 'THOUGHT' ? 'bg-stone-100 dark:bg-stone-700/70 text-amber-600 dark:text-amber-400' : ''}">
+                  💭 내생각
+                </button>
+                <button type="button" data-value="QUESTION" class="detail-type-option-btn w-full px-3 py-2 text-left font-bold text-stone-800 dark:text-stone-200 hover:bg-stone-100 dark:hover:bg-stone-700/70 rounded-lg cursor-pointer transition-colors ${typeFilter === 'QUESTION' ? 'bg-stone-100 dark:bg-stone-700/70 text-amber-600 dark:text-amber-400' : ''}">
+                  ❓ 의문점
+                </button>
+                <button type="button" data-value="SUMMARY" class="detail-type-option-btn w-full px-3 py-2 text-left font-bold text-stone-800 dark:text-stone-200 hover:bg-stone-100 dark:hover:bg-stone-700/70 rounded-lg cursor-pointer transition-colors ${typeFilter === 'SUMMARY' ? 'bg-stone-100 dark:bg-stone-700/70 text-amber-600 dark:text-amber-400' : ''}">
+                  📋 요약
+                </button>
+                <button type="button" data-value="REVIEW" class="detail-type-option-btn w-full px-3 py-2 text-left font-bold text-stone-800 dark:text-stone-200 hover:bg-stone-100 dark:hover:bg-stone-700/70 rounded-lg cursor-pointer transition-colors ${typeFilter === 'REVIEW' ? 'bg-stone-100 dark:bg-stone-700/70 text-amber-600 dark:text-amber-400' : ''}">
+                  ⭐ 리뷰
+                </button>
+              </div>
+            </div>
           </div>
 
-          <select id="detail-type-filter" class="text-xs bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-lg px-2.5 py-1.5 text-stone-700 dark:text-stone-200 font-bold focus:outline-none">
-            <option value="ALL" ${typeFilter === 'ALL' ? 'selected' : ''}>전체 유형</option>
-            <option value="QUOTE" ${typeFilter === 'QUOTE' ? 'selected' : ''}>✍️ 인용구</option>
-            <option value="THOUGHT" ${typeFilter === 'THOUGHT' ? 'selected' : ''}>💭 내생각</option>
-            <option value="QUESTION" ${typeFilter === 'QUESTION' ? 'selected' : ''}>❓ 의문점</option>
-            <option value="SUMMARY" ${typeFilter === 'SUMMARY' ? 'selected' : ''}>📋 요약</option>
-            <option value="REVIEW" ${typeFilter === 'REVIEW' ? 'selected' : ''}>⭐ 리뷰</option>
-          </select>
+          <!-- Right: 1단 / 2단 / 3단 칼럼 조절 -->
+          <div class="h-[30px] inline-flex items-center gap-0.5 bg-stone-100 dark:bg-stone-800 p-0.5 rounded-lg border border-stone-200/80 dark:border-stone-700/60 shadow-2xs">
+            <button data-detail-cols="1" class="h-full btn-detail-cols px-2.5 rounded-md font-bold text-xs flex items-center justify-center transition-all cursor-pointer ${cols === 1 ? 'bg-white dark:bg-stone-700 text-stone-900 dark:text-stone-100 shadow-2xs' : 'text-stone-500 dark:text-stone-400 hover:text-stone-800 dark:hover:text-stone-200'}">
+              1단
+            </button>
+            <button data-detail-cols="2" class="h-full btn-detail-cols px-2.5 rounded-md font-bold text-xs flex items-center justify-center transition-all cursor-pointer ${cols === 2 ? 'bg-white dark:bg-stone-700 text-stone-900 dark:text-stone-100 shadow-2xs' : 'text-stone-500 dark:text-stone-400 hover:text-stone-800 dark:hover:text-stone-200'}">
+              2단
+            </button>
+            <button data-detail-cols="3" class="h-full btn-detail-cols px-2.5 rounded-md font-bold text-xs flex items-center justify-center transition-all cursor-pointer ${cols === 3 ? 'bg-white dark:bg-stone-700 text-stone-900 dark:text-stone-100 shadow-2xs' : 'text-stone-500 dark:text-stone-400 hover:text-stone-800 dark:hover:text-stone-200'}">
+              3단
+            </button>
+          </div>
         </div>
 
-        <div class="space-y-3">
+        <div class="${recordGridClass}">
           ${displayRecords.length === 0 ? `
-            <div class="text-center py-10 bg-transparent border-none shadow-none">
+            <div class="text-center py-10 bg-transparent border-none shadow-none col-span-full">
               <span class="material-symbols-outlined text-3xl text-stone-300 dark:text-stone-700 mb-1">edit_note</span>
               <p class="text-xs text-stone-400 dark:text-stone-500 font-bold">등록된 기록이 없습니다.</p>
             </div>
-          ` : displayRecords.map(r => renderDetailRecordCard(r, book)).join('')}
+          ` : displayRecords.map(r => renderRecordCard(r)).join('')}
         </div>
 
       </div>
@@ -520,8 +607,8 @@ export function renderBookDetailPage(container, targetBookId) {
 
 
       <!-- Floating Action Button (FAB) at Bottom-Right: '+' Button -->
-      <button id="btn-add-book-record" class="fixed bottom-6 right-6 sm:bottom-8 sm:right-8 z-40 w-12 h-12 sm:w-13 sm:h-13 bg-stone-900 hover:bg-stone-800 dark:bg-stone-100 dark:hover:bg-white text-white dark:text-stone-900 rounded-full shadow-2xl flex items-center justify-center hover:scale-110 active:scale-95 transition-all cursor-pointer border border-stone-700/30 dark:border-stone-300/30" title="새 문장 기록하기" aria-label="새 문장 기록하기">
-        <span class="material-symbols-outlined text-2xl font-bold">add</span>
+      <button id="btn-add-book-record" data-book-id="${book.id}" class="fixed bottom-6 right-6 sm:bottom-8 sm:right-8 z-40 w-12 h-12 sm:w-13 sm:h-13 bg-stone-900 hover:bg-stone-800 dark:bg-stone-100 dark:hover:bg-white text-white dark:text-stone-900 rounded-full shadow-2xl flex items-center justify-center hover:scale-110 active:scale-95 transition-all cursor-pointer border border-stone-700/30 dark:border-stone-300/30" title="새 문장 기록하기" aria-label="새 문장 기록하기">
+        <span class="material-symbols-outlined text-2xl font-bold pointer-events-none">add</span>
       </button>
 
     </div>
@@ -631,9 +718,36 @@ export function renderBookDetailPage(container, targetBookId) {
     });
   });
 
-  // Filter Type Selector
-  container.querySelector('#detail-type-filter')?.addEventListener('change', (e) => {
-    setState({ myPostTypeFilter: e.target.value });
+  // Filter Type Custom Dropdown Toggle & Selector
+  const detailTypeBtn = container.querySelector('#detail-type-filter-btn');
+  const detailTypeMenu = container.querySelector('#detail-type-filter-menu');
+
+  detailTypeBtn?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    detailTypeMenu?.classList.toggle('hidden');
+  });
+
+  detailTypeMenu?.querySelectorAll('.detail-type-option-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const val = btn.dataset.value;
+      detailTypeMenu.classList.add('hidden');
+      setState({ myPostTypeFilter: val });
+    });
+  });
+
+  document.addEventListener('click', (e) => {
+    if (detailTypeMenu && !detailTypeMenu.classList.contains('hidden') && !detailTypeBtn?.contains(e.target) && !detailTypeMenu.contains(e.target)) {
+      detailTypeMenu.classList.add('hidden');
+    }
+  });
+
+  // Detail Cols Switcher (1단 / 2단 / 3단)
+  container.querySelectorAll('.btn-detail-cols').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const numCols = parseInt(e.currentTarget.dataset.detailCols, 10);
+      setState({ detailCols: numCols });
+    });
   });
 
   // Add Record Button
@@ -643,37 +757,9 @@ export function renderBookDetailPage(container, targetBookId) {
 
   // Interactive Barcode Touch & Drag
   attachBarcodeDragEvents(container, book, allBookRecords);
-}
 
-function renderDetailRecordCard(item, book) {
-  const isSpoiled = item.spoil && (item.page > book.curPage);
-
-  return `
-    <div id="post-card-${item.id}" class="bg-white dark:bg-stone-900 p-4 sm:p-5 rounded-2xl border border-stone-200/80 dark:border-stone-800 shadow-sm space-y-2.5 relative overflow-hidden transition-all font-sans">
-      <div class="flex items-center justify-between text-xs pb-2 border-b border-stone-100 dark:border-stone-800">
-        <span class="font-bold px-2.5 py-0.5 bg-stone-100 dark:bg-stone-800 text-stone-900 dark:text-stone-100 rounded-lg">p.${item.page}</span>
-        <span class="text-stone-400 text-[11px]">${formatRelativeTime(item.createdAt)}</span>
-      </div>
-
-      ${isSpoiled ? `
-        <div class="bg-stone-100 dark:bg-stone-800 rounded-xl p-4 text-center my-1 border border-stone-200 dark:border-stone-700">
-          <span class="material-symbols-outlined text-stone-700 dark:text-stone-300 text-xl mb-0.5">visibility_off</span>
-          <p class="font-bold text-stone-900 dark:text-stone-100 text-xs">스포일러 방지 블라인드</p>
-          <p class="text-[11px] text-stone-500 dark:text-stone-400">현재 독서 위치(p.${book.curPage})보다 뒤의 기록입니다.</p>
-        </div>
-      ` : `
-        <blockquote class="font-serif text-stone-900 dark:text-stone-100 text-sm leading-relaxed border-l-2 border-stone-900 dark:border-stone-100 pl-3.5 py-0.5 my-1.5">
-          “${esc(item.quote)}”
-        </blockquote>
-        ${item.thought ? `
-          <div class="text-xs text-stone-700 dark:text-stone-300 bg-stone-50 dark:bg-stone-800/50 p-3 rounded-xl font-sans leading-normal border border-stone-100 dark:border-stone-800">
-            <span class="font-bold text-stone-900 dark:text-stone-100 block mb-0.5">💭 감상</span>
-            <span>${esc(item.thought)}</span>
-          </div>
-        ` : ''}
-      `}
-    </div>
-  `;
+  // Attach Shared Record Card Events (Book title click, Like, Typing, 3-Dots Menu, etc.)
+  attachRecordCardEvents(container);
 }
 
 function renderProgressModal(book, container) {
@@ -684,7 +770,7 @@ function renderProgressModal(book, container) {
   let pct = Math.min(Math.round((curPoint / totalPoint) * 100), 100);
 
   const modalHtml = `
-    <div id="modal-progress-overlay" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/60 backdrop-blur-xs animate-fade-in font-sans">
+    <div id="modal-progress-overlay" class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-stone-900/60 backdrop-blur-xs animate-fade-in font-sans">
       <div class="bg-white dark:bg-stone-900 border border-stone-200/80 dark:border-stone-800 rounded-2xl p-6 sm:p-7 max-w-md w-full shadow-2xl space-y-4 text-left">
         
         <!-- Modal Header -->
@@ -788,7 +874,7 @@ function renderEditBookModal(book, container) {
   document.querySelector('#modal-edit-book-overlay')?.remove();
 
   const modalHtml = `
-    <div id="modal-edit-book-overlay" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/60 backdrop-blur-xs animate-fade-in font-sans">
+    <div id="modal-edit-book-overlay" class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-stone-900/60 backdrop-blur-xs animate-fade-in font-sans">
       <div class="bg-white dark:bg-stone-900 border border-stone-200/80 dark:border-stone-800 rounded-2xl p-5 sm:p-7 max-w-lg w-full shadow-2xl space-y-4 text-left">
         
         <div class="flex items-center justify-between border-b border-stone-100 dark:border-stone-800 pb-3">

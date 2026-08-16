@@ -3,6 +3,7 @@
  */
 import { state, setState, db } from '../state.js';
 import { formatRelativeTime } from '../utils/dateUtils.js';
+import { renderRecordCard, attachRecordCardEvents } from './feed.js';
 
 export function renderMyPage(container) {
   const books = db.books || [];
@@ -18,8 +19,10 @@ export function renderMyPage(container) {
   const startIndex = (currentPage - 1) * pageSize;
   const pagedNotes = notes.slice(startIndex, startIndex + pageSize);
 
+  const myRecords = records.filter(r => r.mine !== false);
+
   container.innerHTML = `
-    <div class="space-y-4 animate-fade-in font-sans">
+    <div class="space-y-4 font-sans">
       
       <!-- Profile Header (Top Right: Gear Icon for Settings Modal Popup) -->
       <div class="bg-white dark:bg-stone-900 p-5 rounded-2xl border border-stone-200/80 dark:border-stone-800 shadow-sm flex items-center justify-between gap-4">
@@ -57,7 +60,7 @@ export function renderMyPage(container) {
         <div class="grid grid-cols-3 gap-2.5 text-center pt-1">
           <div class="bg-stone-50 dark:bg-stone-800/60 p-3 rounded-xl border border-stone-200/60 dark:border-stone-700/60">
             <div class="text-[11px] text-stone-500 dark:text-stone-400 font-medium">수집 문장</div>
-            <div class="text-xl font-bold font-serif text-stone-900 dark:text-stone-100 mt-0.5">${records.length}개</div>
+            <div class="text-xl font-bold font-serif text-stone-900 dark:text-stone-100 mt-0.5">${myRecords.length}개</div>
           </div>
 
           <div class="bg-stone-50 dark:bg-stone-800/60 p-3 rounded-xl border border-stone-200/60 dark:border-stone-700/60">
@@ -72,7 +75,25 @@ export function renderMyPage(container) {
         </div>
       </div>
 
-      <!-- Saved Typing Notes History Drawer (AJAX Partial DOM Update, Paged max 10 per page) -->
+      <!-- 내가 쓴 글 (My Written Records Feed - Placed above Typing Notes) -->
+      <div id="mypage-records-container" class="bg-white dark:bg-stone-900 p-5 rounded-2xl border border-stone-200/80 dark:border-stone-800 shadow-sm space-y-3 font-sans">
+        <div class="flex items-center justify-between font-bold text-stone-900 dark:text-stone-100 text-sm pb-2 border-b border-stone-100 dark:border-stone-800">
+          <span class="flex items-center gap-1.5">
+            <span class="material-symbols-outlined text-amber-600 dark:text-amber-400">edit_note</span>
+            <span>내가 쓴 글 (${myRecords.length}개)</span>
+          </span>
+        </div>
+
+        <div class="space-y-3 pt-1">
+          ${myRecords.length === 0 ? `
+            <div class="text-center py-8 text-xs text-stone-400 font-medium">
+              아직 작성하신 기록이나 리뷰가 없습니다.
+            </div>
+          ` : myRecords.map(r => renderRecordCard(r)).join('')}
+        </div>
+      </div>
+
+      <!-- Saved Typing Notes History Drawer -->
       <div id="mypage-notes-drawer-container" class="bg-white dark:bg-stone-900 p-5 rounded-2xl border border-stone-200/80 dark:border-stone-800 shadow-sm space-y-3">
         <!-- Rendered dynamically by updateMyPageNotesList() without full page reload -->
       </div>
@@ -86,28 +107,41 @@ export function renderMyPage(container) {
     if (!drawerContainer) return;
 
     const allNotes = db.typingNotes || [];
-    const pSize = 5;
+    const noteCols = state.noteCols || 1;
+    const pSize = noteCols === 3 ? 9 : (noteCols === 2 ? 6 : 5);
     const totalP = Math.max(1, Math.ceil(allNotes.length / pSize));
     const curP = Math.min(Math.max(1, page), totalP);
     const startIdx = (curP - 1) * pSize;
     const pagedItems = allNotes.slice(startIdx, startIdx + pSize);
 
+    const gridClass = noteCols === 3 ? 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5' : (noteCols === 2 ? 'grid grid-cols-1 sm:grid-cols-2 gap-2.5' : 'space-y-2.5');
+
     drawerContainer.innerHTML = `
-      <h3 class="font-bold text-stone-900 dark:text-stone-100 text-sm flex items-center justify-between">
+      <div class="flex items-center justify-between font-bold text-stone-900 dark:text-stone-100 text-sm pb-1 border-b border-stone-100 dark:border-stone-800">
         <span class="flex items-center gap-1.5">
           <span class="material-symbols-outlined text-stone-800 dark:text-stone-200">history_edu</span>
           <span>나의 필사 노트 기록</span>
         </span>
-        <span class="text-xs font-normal text-stone-400">총 ${allNotes.length}건 (${curP}/${totalP}p)</span>
-      </h3>
+        <div class="flex items-center gap-2">
+          <!-- Layout Switcher 1단/2단/3단 -->
+          <div class="flex items-center gap-1 text-[11px] font-sans">
+            <div class="inline-flex bg-stone-100 dark:bg-stone-800 p-0.5 rounded-md border border-stone-200/80 dark:border-stone-700">
+              <button data-note-cols="1" class="btn-mypage-note-col px-2 py-0.5 rounded font-bold transition-all cursor-pointer ${noteCols === 1 ? 'bg-white dark:bg-stone-700 text-stone-900 dark:text-stone-100 shadow-2xs' : 'text-stone-400 hover:text-stone-600 dark:hover:text-stone-300'}">1단</button>
+              <button data-note-cols="2" class="btn-mypage-note-col px-2 py-0.5 rounded font-bold transition-all cursor-pointer ${noteCols === 2 ? 'bg-white dark:bg-stone-700 text-stone-900 dark:text-stone-100 shadow-2xs' : 'text-stone-400 hover:text-stone-600 dark:hover:text-stone-300'}">2단</button>
+              <button data-note-cols="3" class="btn-mypage-note-col px-2 py-0.5 rounded font-bold transition-all cursor-pointer ${noteCols === 3 ? 'bg-white dark:bg-stone-700 text-stone-900 dark:text-stone-100 shadow-2xs' : 'text-stone-400 hover:text-stone-600 dark:hover:text-stone-300'}">3단</button>
+            </div>
+          </div>
+          <span class="text-xs font-normal text-stone-400">총 ${allNotes.length}건 (${curP}/${totalP}p)</span>
+        </div>
+      </div>
 
-      <div class="space-y-2.5">
+      <div class="${gridClass} pt-1">
         ${allNotes.length === 0 ? `
-          <p class="text-xs text-stone-400 text-center py-8">아직 저장된 필사 노치가 없습니다. 필사를 완성하면 이곳에 기록됩니다.</p>
+          <p class="text-xs text-stone-400 text-center py-8 col-span-full">아직 저장된 필사 노치가 없습니다. 필사를 완성하면 이곳에 기록됩니다.</p>
         ` : pagedItems.map(n => `
           <div class="p-3.5 bg-stone-50 dark:bg-stone-800/50 rounded-xl border border-stone-200/60 dark:border-stone-700/60 space-y-1">
             <div class="flex items-center justify-between text-xs">
-              <span class="font-bold text-stone-900 dark:text-stone-100">${n.title}</span>
+              <button type="button" data-book-title="${n.title}" class="btn-go-book-detail cursor-pointer font-bold text-stone-900 dark:text-stone-100 text-left truncate">${n.title}</button>
               <span class="text-stone-400 text-[11px]">${formatRelativeTime(n.completedAt)}</span>
             </div>
             <p class="text-xs font-serif text-stone-700 dark:text-stone-300 line-clamp-2 leading-relaxed">“${n.text}”</p>
@@ -135,6 +169,16 @@ export function renderMyPage(container) {
         </div>
       ` : ''}
     `;
+
+    // Attach Note Column Switcher Event Handlers
+    drawerContainer.querySelectorAll('.btn-mypage-note-col').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const cols = parseInt(e.currentTarget.dataset.noteCols);
+        setState({ noteCols: cols });
+        updateMyPageNotesList(1);
+      });
+    });
 
     // Re-attach pagination handlers
     drawerContainer.querySelector('#btn-prev-mypage-note-page')?.addEventListener('click', (e) => {
@@ -166,6 +210,8 @@ export function renderMyPage(container) {
   container.querySelector('#btn-open-settings')?.addEventListener('click', () => {
     renderSettingsModal();
   });
+
+  attachRecordCardEvents(container);
 }
 
 function renderSettingsModal() {
@@ -221,21 +267,6 @@ function renderSettingsModal() {
           </div>
         </div>
 
-        <!-- 3. Sound Option -->
-        <div class="space-y-2 text-xs">
-          <span class="font-bold text-stone-700 dark:text-stone-300 block">타이핑 효과음</span>
-          <div class="grid grid-cols-3 gap-1.5">
-            <button data-sound="mechanical" class="btn-select-sound py-2 bg-stone-100 dark:bg-stone-800 hover:bg-stone-200 dark:hover:bg-stone-700 rounded-xl text-center transition-all cursor-pointer ${state.soundType === 'mechanical' || !state.soundType ? 'ring-2 ring-stone-900 dark:ring-stone-100 font-bold bg-white dark:bg-stone-700 text-stone-900 dark:text-stone-100' : 'text-stone-600 dark:text-stone-400'}">
-              ⌨️ 기계식
-            </button>
-            <button data-sound="typewriter" class="btn-select-sound py-2 bg-stone-100 dark:bg-stone-800 hover:bg-stone-200 dark:hover:bg-stone-700 rounded-xl text-center transition-all cursor-pointer ${state.soundType === 'typewriter' ? 'ring-2 ring-stone-900 dark:ring-stone-100 font-bold bg-white dark:bg-stone-700 text-stone-900 dark:text-stone-100' : 'text-stone-600 dark:text-stone-400'}">
-              📜 타자기
-            </button>
-            <button data-sound="pen" class="btn-select-sound py-2 bg-stone-100 dark:bg-stone-800 hover:bg-stone-200 dark:hover:bg-stone-700 rounded-xl text-center transition-all cursor-pointer ${state.soundType === 'pen' ? 'ring-2 ring-stone-900 dark:ring-stone-100 font-bold bg-white dark:bg-stone-700 text-stone-900 dark:text-stone-100' : 'text-stone-600 dark:text-stone-400'}">
-              ✍️ 펜 소리
-            </button>
-          </div>
-        </div>
 
         <!-- Footer Close Button -->
         <div class="pt-2">
@@ -275,11 +306,4 @@ function renderSettingsModal() {
     });
   });
 
-  modalEl?.querySelectorAll('.btn-select-sound').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      const sound = e.currentTarget.dataset.sound;
-      setState({ soundType: sound });
-      modalEl.remove();
-    });
-  });
 }

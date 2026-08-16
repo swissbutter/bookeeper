@@ -19,7 +19,7 @@ export function renderAdminPage(container) {
   const adminSubTab = state.adminSubTab || 'DASHBOARD';
 
   container.innerHTML = `
-    <div class="space-y-5 font-sans animate-fade-in text-left">
+    <div class="space-y-5 font-sans text-left">
       
       <!-- Admin Top Banner Header -->
       <div class="bg-stone-900 dark:bg-stone-800 text-stone-100 p-5 sm:p-6 rounded-2xl border border-stone-800 shadow-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">

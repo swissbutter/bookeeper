@@ -6,7 +6,7 @@
  */
 import { state, setState, db, updateDB, updateDBSilent } from '../state.js';
 import { calculateTypingStats, getDisplayTokens } from '../utils/hangul.js';
-import { soundEngine } from '../utils/soundEngine.js';
+import { formatRelativeTime } from '../utils/dateUtils.js';
 
 const sampleQuotes = [
   {
@@ -91,8 +91,6 @@ export function renderTypingStudio(container) {
   const practiceMode = state.typingPracticeMode || 'PRACTICE'; // 'PRACTICE' vs 'GAME'
   const sourceMode = state.typingSourceMode || 'RECOMMENDED';
   const currentFont = state.typingFont || 'typing-font-batang';
-  const soundType = state.soundType || 'mechanical';
-
   let currentObj = null;
   if (state.activeTyping && state.activeTyping.text) {
     currentObj = {
@@ -118,15 +116,8 @@ export function renderTypingStudio(container) {
   let isCompleted = false;
 
   const isGameMode = (practiceMode === 'GAME');
-  const typingNotes = db.typingNotes || [];
-  const pageSize = 10;
-  const currentPage = Math.min(state.typingNotePage || 1, Math.max(1, Math.ceil(typingNotes.length / pageSize)));
-  const totalPages = Math.max(1, Math.ceil(typingNotes.length / pageSize));
-  const startIndex = (currentPage - 1) * pageSize;
-  const pagedNotes = typingNotes.slice(startIndex, startIndex + pageSize);
-
   container.innerHTML = `
-    <div class="min-h-[78vh] flex flex-col justify-between space-y-6 animate-fade-in typing-zen-container max-w-3xl mx-auto font-sans py-2 sm:py-4">
+    <div class="min-h-[78vh] flex flex-col justify-between space-y-4 typing-zen-container max-w-3xl mx-auto font-sans py-2 sm:py-3">
       
       <!-- Top Mode & Source Switcher Bar (Frameless & Transparent Background) -->
       <div class="bg-transparent py-0.5 px-0 flex items-center justify-between gap-2 overflow-x-auto text-xs shrink-0 border-none shadow-none mb-1">
@@ -160,19 +151,24 @@ export function renderTypingStudio(container) {
         <!-- Auto Next Toggle -->
         <button id="btn-toggle-autonext" class="px-2.5 py-1 rounded-lg transition-all cursor-pointer flex items-center gap-1 font-bold text-xs shrink-0 ${state.autoNextQuote ? 'bg-stone-800 dark:bg-stone-200 text-white dark:text-stone-900 shadow-sm' : 'bg-stone-100 dark:bg-stone-800 text-stone-400 dark:text-stone-500'}" title="필사 완필 후 자동으로 다음 문장 넘어가기">
           <span class="material-symbols-outlined text-sm">${state.autoNextQuote ? 'autorenew' : 'pause_circle'}</span>
-          <span>다음 문장</span>
+          <span>자동 다음 문장</span>
         </button>
 
       </div>
 
       <!-- Main Typing Canvas (Frameless Paper Typography with Compact Vertical Spacing) -->
-      <div id="typing-canvas-wrap" class="relative bg-transparent p-2 sm:p-3 flex flex-col justify-between flex-1 min-h-[45vh] transition-all cursor-text">
+      <div id="typing-canvas-wrap" class="relative bg-transparent px-2 py-1 sm:px-3 sm:py-2 flex flex-col justify-between flex-1 min-h-[32vh] transition-all cursor-text">
         
         <!-- Permanent Smooth Sliding Caret Line -->
         <div id="typing-active-caret"></div>
 
+        <!-- English Input Alert Banner (Mismatched Keyboard Mode Indicator) -->
+        <div id="typing-lang-warning" class="hidden w-full mb-2 p-2 bg-amber-50 dark:bg-amber-950/80 border border-amber-300/80 dark:border-amber-700/80 rounded-xl text-amber-900 dark:text-amber-200 text-xs font-bold text-center shadow-xs animate-fade-in z-20 font-sans">
+          영어로 입력 중입니다.
+        </div>
+
         <!-- Render Target Characters Display (Compact Padding) -->
-        <div class="flex-1 flex items-center justify-center w-full my-auto py-1 sm:py-2">
+        <div class="flex-1 flex items-center justify-center w-full my-auto py-0.5 sm:py-1">
           <div id="typing-display" class="relative text-lg sm:text-xl md:text-2xl leading-normal tracking-tight select-none text-left w-full break-all break-words text-wrap ${currentFont}">${renderCharSpans(activeQuote, '')}</div>
         </div>
 
@@ -244,7 +240,7 @@ export function renderTypingStudio(container) {
       ` : ''}
 
       <!-- Recent Transcription Notes Drawer (AJAX Partial DOM Update, Paged 10 per page) -->
-      <div id="typing-notes-drawer-container" class="pt-4 border-t border-stone-200/80 dark:border-stone-800 space-y-3">
+      <div id="typing-notes-drawer-container" class="pt-3 border-t border-stone-200/80 dark:border-stone-800 space-y-2">
         <!-- Rendered dynamically by renderTypingNotesList() without full page reload -->
       </div>
 
@@ -257,19 +253,32 @@ export function renderTypingStudio(container) {
     if (!drawerContainer) return;
 
     const allNotes = db.typingNotes || [];
-    const pSize = 5;
+    const noteCols = state.noteCols || 1;
+    const pSize = noteCols === 3 ? 9 : (noteCols === 2 ? 6 : 5);
     const totalP = Math.max(1, Math.ceil(allNotes.length / pSize));
     const curP = Math.min(Math.max(1, page), totalP);
     const startIdx = (curP - 1) * pSize;
     const pagedItems = allNotes.slice(startIdx, startIdx + pSize);
 
+    const gridClass = noteCols === 3 ? 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5' : (noteCols === 2 ? 'grid grid-cols-1 sm:grid-cols-2 gap-2.5' : 'space-y-2');
+
     drawerContainer.innerHTML = `
-      <div class="flex items-center justify-between text-xs font-bold text-stone-700 dark:text-stone-300">
+      <div class="flex items-center justify-between text-xs font-bold text-stone-700 dark:text-stone-300 pb-1 border-b border-stone-100 dark:border-stone-800">
         <span class="flex items-center gap-1.5">
           <span class="material-symbols-outlined text-base text-stone-400">auto_stories</span>
           <span>최근 필사 기록 (${allNotes.length})</span>
         </span>
-        <span class="text-xs font-normal text-stone-400">(${curP}/${totalP}p)</span>
+        <div class="flex items-center gap-2">
+          <!-- Layout Switcher 1단/2단/3단 -->
+          <div class="flex items-center gap-1 text-[11px] font-sans">
+            <div class="inline-flex bg-stone-100 dark:bg-stone-800 p-0.5 rounded-md border border-stone-200/80 dark:border-stone-700">
+              <button data-note-cols="1" class="btn-note-col px-2 py-0.5 rounded font-bold transition-all cursor-pointer ${noteCols === 1 ? 'bg-white dark:bg-stone-700 text-stone-900 dark:text-stone-100 shadow-2xs' : 'text-stone-400 hover:text-stone-600 dark:hover:text-stone-300'}">1단</button>
+              <button data-note-cols="2" class="btn-note-col px-2 py-0.5 rounded font-bold transition-all cursor-pointer ${noteCols === 2 ? 'bg-white dark:bg-stone-700 text-stone-900 dark:text-stone-100 shadow-2xs' : 'text-stone-400 hover:text-stone-600 dark:hover:text-stone-300'}">2단</button>
+              <button data-note-cols="3" class="btn-note-col px-2 py-0.5 rounded font-bold transition-all cursor-pointer ${noteCols === 3 ? 'bg-white dark:bg-stone-700 text-stone-900 dark:text-stone-100 shadow-2xs' : 'text-stone-400 hover:text-stone-600 dark:hover:text-stone-300'}">3단</button>
+            </div>
+          </div>
+          <span class="text-xs font-normal text-stone-400">(${curP}/${totalP}p)</span>
+        </div>
       </div>
 
       ${allNotes.length === 0 ? `
@@ -277,15 +286,15 @@ export function renderTypingStudio(container) {
           아직 저장된 필사 기록이 없습니다. 문장을 필사하면 이곳에 자동으로 기록됩니다!
         </div>
       ` : `
-        <div class="space-y-2">
+        <div class="${gridClass} pt-1">
           ${pagedItems.map(note => `
-            <div class="bg-white dark:bg-stone-900 p-3.5 rounded-xl border border-stone-200/70 dark:border-stone-800 flex items-start justify-between gap-3 shadow-2xs hover:border-stone-300 transition-all">
-              <div class="space-y-1 min-w-0 flex-1">
+            <div class="bg-white dark:bg-stone-900 px-3 py-2.5 rounded-xl border border-stone-200/70 dark:border-stone-800 flex items-start justify-between gap-3 shadow-2xs hover:border-stone-300 transition-all">
+              <div class="space-y-0.5 min-w-0 flex-1">
                 <div class="flex items-center gap-2">
                   <span class="font-bold text-xs text-stone-900 dark:text-stone-100 truncate">${note.title}</span>
-                  <span class="text-[10px] text-stone-400">${new Date(note.completedAt).toLocaleDateString()}</span>
+                  <span class="text-[10px] text-stone-400">${formatRelativeTime(note.completedAt)}</span>
                 </div>
-                <p class="font-serif text-xs text-stone-600 dark:text-stone-300 line-clamp-2 leading-relaxed">"${note.text}"</p>
+                <p class="font-serif text-xs text-stone-600 dark:text-stone-300 line-clamp-2 leading-snug">"${note.text}"</p>
                 ${note.cpm > 0 ? `
                   <div class="text-[10px] text-stone-400 flex items-center gap-2 pt-0.5">
                     <span>속도: ${note.cpm} CPM</span>
@@ -317,6 +326,16 @@ export function renderTypingStudio(container) {
         ` : ''}
       `}
     `;
+
+    // Attach Note Column Switcher Event Handlers
+    drawerContainer.querySelectorAll('.btn-note-col').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const cols = parseInt(e.currentTarget.dataset.noteCols);
+        setState({ noteCols: cols });
+        updateNotesDrawerList(1);
+      });
+    });
 
     // Re-attach pagination handlers inside the updated container
     drawerContainer.querySelector('#btn-prev-typing-note-page')?.addEventListener('click', (e) => {
@@ -352,10 +371,6 @@ export function renderTypingStudio(container) {
 
   const hiddenInput = container.querySelector('#typing-hidden-input');
   const typingDisplay = container.querySelector('#typing-display');
-  const progressBar = container.querySelector('#progress-bar');
-  const progressPercent = container.querySelector('#progress-percent');
-  const progressCount = container.querySelector('#progress-count');
-
   const cpmEl = container.querySelector('#stat-cpm');
   const wpmEl = container.querySelector('#stat-wpm');
   const accEl = container.querySelector('#stat-accuracy');
@@ -403,34 +418,23 @@ export function renderTypingStudio(container) {
     const prevLength = typedText.length;
     typedText = e.target.value;
 
+    // Detect English input mode mismatch
+    const langWarning = container.querySelector('#typing-lang-warning');
+    const isEnglishTyped = /[가-힣]/.test(activeQuote) && /[a-zA-Z]/.test(typedText);
+    if (langWarning) {
+      if (isEnglishTyped) {
+        langWarning.classList.remove('hidden');
+      } else {
+        langWarning.classList.add('hidden');
+      }
+    }
+
     if (!startTime && typedText.length > 0) {
       startTime = Date.now();
       if (isGameMode) {
         timerInterval = setInterval(updateStats, 200);
       }
     }
-
-    // Play Keystroke Audio Feedback
-    if (typedText.length > prevLength) {
-      const lastCharIndex = typedText.length - 1;
-      if (lastCharIndex < activeQuote.length && typedText[lastCharIndex] !== activeQuote[lastCharIndex]) {
-        soundEngine.playErrorSound();
-      } else {
-        const lastInputChar = typedText[lastCharIndex];
-        if (lastInputChar === ' ' || lastInputChar === '\n') {
-          soundEngine.playSpaceOrEnter();
-        } else {
-          soundEngine.playKeySound(state.soundType);
-        }
-      }
-    }
-
-    // Update Progress UI
-    const progressRatio = Math.min(1, typedText.length / activeQuote.length);
-    const pct = Math.round(progressRatio * 100);
-    if (progressBar) progressBar.style.width = `${pct}%`;
-    if (progressPercent) progressPercent.textContent = `${pct}%`;
-    if (progressCount) progressCount.textContent = `${typedText.length} / ${activeQuote.length}자`;
 
     typingDisplay.innerHTML = renderCharSpans(activeQuote, typedText);
     updateCaretPosition();
@@ -443,9 +447,8 @@ export function renderTypingStudio(container) {
     if (typedText.length >= activeQuote.length && typedText === activeQuote) {
       isCompleted = true;
       if (timerInterval) clearInterval(timerInterval);
+      if (langWarning) langWarning.classList.add('hidden');
       
-      soundEngine.playSuccessChime();
-
       const elapsedSeconds = startTime ? (Date.now() - startTime) / 1000 : 1;
       const stats = calculateTypingStats(activeQuote, typedText, elapsedSeconds);
 
@@ -477,6 +480,9 @@ export function renderTypingStudio(container) {
     startTime = null;
     isCompleted = false;
 
+    const langWarning = container.querySelector('#typing-lang-warning');
+    if (langWarning) langWarning.classList.add('hidden');
+
     // Update DOM in-place seamlessly!
     if (typingDisplay) typingDisplay.innerHTML = renderCharSpans(activeQuote, '');
 
@@ -489,13 +495,6 @@ export function renderTypingStudio(container) {
         <span class="text-stone-300 dark:text-stone-700">/</span>
         <span class="text-stone-400 dark:text-stone-500 truncate">${activePublisher}</span>
       `;
-    }
-
-    const iconLike = container.querySelector('#icon-like-quote');
-    if (iconLike) {
-      iconLike.textContent = 'favorite_border';
-      iconLike.classList.remove('text-rose-500');
-      iconLike.classList.add('text-stone-400');
     }
 
     updateCaretPosition();
@@ -516,7 +515,6 @@ export function renderTypingStudio(container) {
   // Event Handlers for Controls
   container.querySelectorAll('.btn-practice-mode').forEach(btn => {
     btn.addEventListener('click', (e) => {
-      soundEngine.playSpaceOrEnter();
       const pm = e.currentTarget.dataset.practiceMode;
       setState({ typingPracticeMode: pm });
     });
@@ -524,7 +522,6 @@ export function renderTypingStudio(container) {
 
   container.querySelectorAll('.btn-source-mode').forEach(btn => {
     btn.addEventListener('click', (e) => {
-      soundEngine.playSpaceOrEnter();
       const sm = e.currentTarget.dataset.sourceMode;
       const nextObj = getRandomQuote(sm);
       setState({
@@ -542,58 +539,11 @@ export function renderTypingStudio(container) {
 
   // Toggle Auto-Next Sentence Feature
   container.querySelector('#btn-toggle-autonext')?.addEventListener('click', () => {
-    soundEngine.playSpaceOrEnter();
     setState({ autoNextQuote: !state.autoNextQuote });
   });
 
-  // Manual Change Quote Button
-  container.querySelector('#btn-next-random')?.addEventListener('click', () => {
-    soundEngine.playSpaceOrEnter();
-    const nextObj = getRandomQuote(state.typingSourceMode || 'RECOMMENDED');
-    setState({
-      activeTyping: {
-        text: nextObj.quote,
-        source: nextObj.title,
-        author: nextObj.author
-      }
-    });
-  });
-
-  // 1. Like Button (Save sentence to user's collection)
-  const btnLike = container.querySelector('#btn-like-quote');
-  const iconLike = container.querySelector('#icon-like-quote');
-  btnLike?.addEventListener('click', () => {
-    soundEngine.playSpaceOrEnter();
-    updateDBSilent(data => {
-      if (!data.myQuotes) data.myQuotes = [];
-      const exists = data.myQuotes.some(q => q.text === activeQuote);
-      if (!exists) {
-        data.myQuotes.unshift({
-          id: 'mq_' + Date.now(),
-          text: activeQuote,
-          bookTitle: activeSource,
-          author: activeAuthor,
-          createdAt: new Date().toISOString()
-        });
-      }
-    });
-    if (iconLike) {
-      iconLike.textContent = 'favorite';
-      iconLike.classList.add('text-rose-500');
-      iconLike.classList.remove('text-stone-400');
-    }
-    alert('내 문장 수집란에 수집되었습니다! (내 서재에서 확인 가능)');
-  });
-
-  // 2. Transcription Note Button
-  container.querySelector('#btn-save-note')?.addEventListener('click', () => {
-    soundEngine.playSpaceOrEnter();
-    saveTypingNote(activeSource, activeQuote, isGameMode ? (cpmEl?.textContent || '0') : '0', '100%', '0');
-    alert('필사 노트 수집란에 저장되었습니다!');
-  });
-
-  // 3. More Options Menu Toggle (Dots)
-  const btnMore = container.querySelector('#btn-more-options');
+  // More Options Menu Toggle (Dots)
+  const btnMore = container.querySelector('#btn-toggle-typing-options');
   const menuMore = container.querySelector('#menu-more-options');
 
   btnMore?.addEventListener('click', (e) => {
@@ -675,6 +625,13 @@ function showCompletionModal(quote, source, author, publisher, stats, isGameMode
 
         <!-- Automatically Generated Literary Postcard / Image Card -->
         <div id="transcription-card-preview" class="relative rounded-xl overflow-hidden shadow-md border border-stone-200/80 dark:border-stone-700 bg-[#F5F4F0] dark:bg-[#1C1917] p-5 sm:p-6 text-left font-serif transition-all">
+          
+          <!-- Transcription Completed Seal/Stamp -->
+          <div class="absolute top-4 right-4 border-2 border-rose-800/80 dark:border-rose-500/80 text-rose-800 dark:text-rose-400 font-serif font-bold text-[10px] sm:text-xs px-2 py-0.5 rounded-md rotate-[-8deg] shadow-2xs select-none tracking-widest pointer-events-none flex items-center gap-1 opacity-90">
+            <span class="material-symbols-outlined text-xs sm:text-sm">verified</span>
+            <span>필사 완료</span>
+          </div>
+
           <div class="text-3xl text-stone-400/60 leading-none select-none font-serif font-bold mb-1">“</div>
 
           <p class="text-sm sm:text-base text-stone-800 dark:text-stone-100 leading-relaxed font-serif tracking-tight font-medium select-text pb-4 border-b border-stone-300/50 dark:border-stone-700/60">
@@ -776,6 +733,28 @@ function downloadExactQuoteCardPNG(quote, title, author, publisher) {
   ctx.fillStyle = 'rgba(168, 162, 158, 0.6)';
   ctx.font = 'bold 64px "Noto Serif KR", serif';
   ctx.fillText('“', 55, 105);
+
+  // Red "필 사 완 료" Seal / Stamp (Top Right)
+  ctx.save();
+  ctx.translate(490, 85);
+  ctx.rotate(-8 * Math.PI / 180);
+
+  // Stamp Outer Border
+  ctx.strokeStyle = '#B91C1C';
+  ctx.lineWidth = 2.5;
+  ctx.strokeRect(-45, -18, 90, 36);
+
+  // Stamp Inner Border
+  ctx.lineWidth = 1;
+  ctx.strokeRect(-41, -14, 82, 28);
+
+  // Stamp Text
+  ctx.fillStyle = '#B91C1C';
+  ctx.font = 'bold 14px "Noto Serif KR", serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('필 사 완 료', 0, 0);
+  ctx.restore();
 
   // Main Quote Text
   ctx.font = '500 22px "Noto Serif KR", serif';
