@@ -22,6 +22,34 @@ const JONGSUNG = [
   'ㅆ', 'ㅇ', 'ㅈ', 'ㅊ', 'ㅋ', 'ㅌ', 'ㅍ', 'ㅎ'
 ];
 
+const DOUBLE_JONGSUNG_MAP = {
+  'ㄳ': ['ㄱ'],
+  'ㄵ': ['ㄴ'],
+  'ㄶ': ['ㄴ'],
+  'ㄺ': ['ㄹ'],
+  'ㄻ': ['ㄹ'],
+  'ㄼ': ['ㄹ'],
+  'ㄽ': ['ㄹ'],
+  'ㄾ': ['ㄹ'],
+  'ㄿ': ['ㄹ'],
+  'ㅀ': ['ㄹ'],
+  'ㅄ': ['ㅂ']
+};
+
+const COMPOUND_JUNGSUNG_MAP = {
+  'ㅘ': ['ㅗ'],
+  'ㅙ': ['ㅗ'],
+  'ㅚ': ['ㅗ'],
+  'ㅝ': ['ㅜ'],
+  'ㅞ': ['ㅜ'],
+  'ㅟ': ['ㅜ'],
+  'ㅢ': ['ㅡ'],
+  'ㅐ': ['ㅏ'],
+  'ㅔ': ['ㅓ'],
+  'ㅒ': ['ㅑ'],
+  'ㅖ': ['ㅕ']
+};
+
 /**
  * Decomposes a Hangul character into Jamo count (e.g. '한' -> 3, '가' -> 2)
  */
@@ -175,17 +203,21 @@ export function getDisplayTokens(target, typed) {
         const decompTarget = decomposeHangulChar(targetChar);
 
         const choMatch = decompT.cho && (decompT.cho === decompTarget.cho);
-        const jungMatch = !decompT.jung || (decompT.jung === decompTarget.jung);
-        const jongMatch = !decompT.jong || (decompT.jong === decompTarget.jong);
+        const jungMatch = !decompT.jung || 
+                          (decompT.jung === decompTarget.jung) || 
+                          (COMPOUND_JUNGSUNG_MAP[decompTarget.jung] && COMPOUND_JUNGSUNG_MAP[decompTarget.jung].includes(decompT.jung));
+        const jongMatch = !decompT.jong || 
+                          (decompT.jong === decompTarget.jong) || 
+                          (DOUBLE_JONGSUNG_MAP[decompTarget.jong] && DOUBLE_JONGSUNG_MAP[decompTarget.jong].includes(decompT.jong));
 
         if (choMatch && jungMatch && jongMatch) {
           tokens.push({ char: typedChar, status: 'current' });
           hasCurrentToken = true;
         } else {
-          tokens.push({ char: typedChar, status: 'incorrect' });
+          tokens.push({ char: targetChar, status: 'incorrect' });
         }
       } else {
-        tokens.push({ char: typedChar, status: 'incorrect' });
+        tokens.push({ char: targetChar, status: 'incorrect' });
       }
     } else if (i === expandedTyped.length && !hasCurrentToken) {
       tokens.push({ char: targetChar, status: 'current' });
