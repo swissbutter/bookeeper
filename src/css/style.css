@@ -158,15 +158,15 @@ body {
 }
 
 .animate-fade-in {
-  animation: fadeIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: none !important;
 }
 
 .animate-slide-up {
-  animation: slideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: none !important;
 }
 
 .animate-fade-scale {
-  animation: fadeScale 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: none !important;
 }
 
 /* Range Input Styling */
