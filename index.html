@@ -65,50 +65,49 @@
   <link rel="stylesheet" href="./src/css/style.css">
   <link rel="stylesheet" href="./src/css/typing.css">
   <link rel="stylesheet" href="./src/css/studio.css">
+  <!-- Naver @egjs/infinitegrid -->
+  <script src="https://unpkg.com/@egjs/infinitegrid/dist/infinitegrid.min.js"></script>
 </head>
 <body class="bg-[#F5F4F0] text-stone-900 antialiased min-h-screen flex flex-col selection:bg-stone-300 selection:text-stone-950 transition-colors duration-300">
   
-  <!-- App Main Container (Full Viewport Edge-to-Edge Desktop App) -->
-  <div id="app" class="w-full max-w-md mx-auto min-h-screen flex flex-col bg-white shadow-2xl relative overflow-x-hidden md:max-w-none md:my-0 md:rounded-none md:border-none md:shadow-none md:flex-row">
+  <!-- App Main Container (Fully Responsive Mobile / Tablet / Desktop Architecture) -->
+  <div id="app" class="w-full min-h-screen flex flex-col md:flex-row relative">
     
-    <!-- Desktop Left Navigation Sidebar (Hidden on Mobile, Layer z-20 above backdrop) -->
-    <aside id="desktop-sidebar" class="hidden md:flex w-64 lg:w-72 flex-shrink-0 bg-white dark:bg-stone-900 text-stone-900 dark:text-stone-100 border-r border-stone-200/80 dark:border-stone-800 p-6 flex-col justify-between select-none transition-colors relative z-20">
+    <!-- Desktop Left Navigation Sidebar (Matched to Viewport Height) -->
+    <aside id="desktop-sidebar" class="hidden md:flex w-64 lg:w-72 flex-shrink-0 bg-white dark:bg-stone-900 text-stone-900 dark:text-stone-100 border-r border-stone-200/80 dark:border-stone-800 p-6 flex-col justify-between select-none transition-colors sticky top-0 h-screen h-[100dvh] max-h-screen z-20 overflow-y-auto">
       <!-- Injected by Nav Component -->
     </aside>
 
     <!-- Main Content Wrapper -->
-    <div class="flex-1 flex flex-col min-w-0 bg-[#F5F4F0]/60 relative">
+    <div class="flex-1 flex flex-col min-w-0 bg-[#F5F4F0]/60 dark:bg-stone-950/60 relative pb-20 md:pb-8">
       
-      <!-- Top Header Bar (Hidden) -->
+      <!-- Mobile & Tablet Sticky Top App Bar (Hidden) -->
       <header id="top-header" class="hidden">
-        <!-- Hidden as requested -->
+        <!-- Injected by Nav Component -->
       </header>
 
-      <!-- Main View Container -->
-      <main id="main-view" class="flex-1 pb-20 md:pb-8 overflow-y-auto px-3.5 sm:px-5 md:px-8 lg:px-12 py-4 sm:py-6 space-y-4 max-w-7xl mx-auto w-full">
+      <!-- Main View Container (Comfortable Max-Width & Side Breathing Room) -->
+      <main id="main-view" class="flex-1 px-4 sm:px-8 md:px-10 lg:px-12 py-5 sm:py-7 space-y-4 max-w-4xl mx-auto w-full">
         <!-- Injected by Active Tab/Component -->
       </main>
 
-      <!-- Bottom Navigation (Mobile Only) -->
-      <nav id="bottom-nav" class="md:hidden fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md z-30 bg-white/95 backdrop-blur-md border-t border-stone-200 px-2 py-2 flex items-center justify-around">
+      <!-- Mobile & Tablet Full-Width Bottom Navigation Bar (Visible on < md) -->
+      <nav id="bottom-nav" class="md:hidden fixed bottom-0 left-0 right-0 w-full z-30 bg-white/95 dark:bg-stone-900/95 backdrop-blur-md border-t border-stone-200/80 dark:border-stone-800 py-2 px-4 shadow-lg flex items-center justify-around rounded-none">
         <!-- Injected by Nav Component -->
       </nav>
 
     </div>
 
     <!-- Fullscreen / Centered Overlay Container -->
-    <div id="overlay-container" class="fixed inset-0 z-50 pointer-events-none transition-all duration-300">
+    <div id="overlay-container" class="fixed inset-0 z-[70] pointer-events-none transition-all duration-300">
       <!-- Injected dynamically -->
     </div>
 
-    <!-- Modal Container -->
-    <div id="modal-container" class="fixed inset-0 z-50 hidden transition-all duration-300">
+    <!-- Modal Container (Highest priority: z-[100]) -->
+    <div id="modal-container" class="fixed inset-0 z-[100] hidden transition-all duration-300">
       <!-- Injected dynamically -->
     </div>
-
   </div>
-
-  <!-- Entry Script (ES Modules) -->
   <script type="module" src="./src/js/main.js"></script>
 </body>
 </html>
